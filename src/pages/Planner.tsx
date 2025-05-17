@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { format, isToday, isWithinInterval, addDays, startOfDay, addMinutes } from "date-fns";
+import { format, isToday, isWithinInterval, addDays, startOfDay, addMinutes, isSameDay } from "date-fns";
 
 // Mock data for study sessions
 const initialStudySessions = [
@@ -67,7 +66,7 @@ const Planner = () => {
   
   // Filter sessions for selected date
   const filteredSessions = studySessions.filter(session => 
-    date && isToday(session.date, date)
+    date && isSameDay(session.date, date)
   );
 
   const handleAddSession = () => {
