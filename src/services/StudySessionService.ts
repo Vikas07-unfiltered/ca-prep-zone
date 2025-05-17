@@ -1,6 +1,5 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
 
 export interface StudySession {
   id?: string;
@@ -9,67 +8,100 @@ export interface StudySession {
   description?: string;
   subject: string;
   date: Date;
-  duration: number; // in minutes
+  duration: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
+// Helper function to format dates for Supabase
+const formatDateForSupabase = (date: Date): string => {
+  return date.toISOString();
+};
+
+// Helper function to parse dates from Supabase
+const parseDateFromSupabase = (dateStr: string): Date => {
+  return new Date(dateStr);
+};
+
 export const StudySessionService = {
-  async getStudySessions(user: User | null) {
-    if (!user) return [];
-    
+  async getStudySessions(userId: string): Promise<StudySession[]> {
     const { data, error } = await supabase
       .from('study_sessions')
       .select('*')
-      .eq('user_id', user.id)
-      .order('date', { ascending: false });
+      .eq('user_id', userId);
       
     if (error) {
-      console.error("Error fetching study sessions:", error);
+      console.error('Error fetching study sessions:', error);
       throw error;
     }
     
-    return data;
+    // Convert dates from strings to Date objects
+    return data?.map(session => ({
+      ...session,
+      date: parseDateFromSupabase(session.date)
+    })) || [];
   },
   
-  async createStudySession(studySession: StudySession) {
+  async createStudySession(session: Omit<StudySession, 'id' | 'created_at' | 'updated_at'>): Promise<StudySession> {
+    // Format the date for Supabase
+    const supabaseSession = {
+      ...session,
+      date: formatDateForSupabase(session.date)
+    };
+    
     const { data, error } = await supabase
       .from('study_sessions')
-      .insert([studySession])
-      .select();
+      .insert(supabaseSession)
+      .select()
+      .single();
       
     if (error) {
-      console.error("Error creating study session:", error);
+      console.error('Error creating study session:', error);
       throw error;
     }
     
-    return data[0];
+    // Convert date back to Date object
+    return {
+      ...data,
+      date: parseDateFromSupabase(data.date)
+    };
   },
   
-  async updateStudySession(id: string, updates: Partial<StudySession>) {
+  async updateStudySession(session: Partial<StudySession> & { id: string }): Promise<StudySession> {
+    // Format the date for Supabase if it exists
+    const supabaseSession = {
+      ...session,
+      date: session.date ? formatDateForSupabase(session.date) : undefined
+    };
+    
     const { data, error } = await supabase
       .from('study_sessions')
-      .update(updates)
-      .eq('id', id)
-      .select();
+      .update(supabaseSession)
+      .eq('id', session.id)
+      .select()
+      .single();
       
     if (error) {
-      console.error("Error updating study session:", error);
+      console.error('Error updating study session:', error);
       throw error;
     }
     
-    return data[0];
+    // Convert date back to Date object
+    return {
+      ...data,
+      date: parseDateFromSupabase(data.date)
+    };
   },
   
-  async deleteStudySession(id: string) {
+  async deleteStudySession(sessionId: string): Promise<void> {
     const { error } = await supabase
       .from('study_sessions')
       .delete()
-      .eq('id', id);
+      .eq('id', sessionId);
       
     if (error) {
-      console.error("Error deleting study session:", error);
+      console.error('Error deleting study session:', error);
       throw error;
     }
-    
-    return true;
   }
 };

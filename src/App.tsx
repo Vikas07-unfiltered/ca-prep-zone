@@ -16,31 +16,35 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import Profile from "./pages/auth/Profile";
 import NotFound from "./pages/NotFound";
+import { StrictMode } from "react";
 
+// Create a client
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<MainLayout><Index /></MainLayout>} />
-            <Route path="/timer" element={<MainLayout><ProtectedRoute><Timer /></ProtectedRoute></MainLayout>} />
-            <Route path="/planner" element={<MainLayout><ProtectedRoute><Planner /></ProtectedRoute></MainLayout>} />
-            <Route path="/rooms" element={<MainLayout><ProtectedRoute><StudyRooms /></ProtectedRoute></MainLayout>} />
-            <Route path="/resources" element={<MainLayout><ProtectedRoute><Resources /></ProtectedRoute></MainLayout>} />
-            <Route path="/login" element={<MainLayout><Login /></MainLayout>} />
-            <Route path="/register" element={<MainLayout><Register /></MainLayout>} />
-            <Route path="/profile" element={<MainLayout><ProtectedRoute><Profile /></ProtectedRoute></MainLayout>} />
-            <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
-          </Routes>
-        </AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<MainLayout><Index /></MainLayout>} />
+              <Route path="/timer" element={<MainLayout><ProtectedRoute><Timer /></ProtectedRoute></MainLayout>} />
+              <Route path="/planner" element={<MainLayout><ProtectedRoute><Planner /></ProtectedRoute></MainLayout>} />
+              <Route path="/rooms" element={<MainLayout><ProtectedRoute><StudyRooms /></ProtectedRoute></MainLayout>} />
+              <Route path="/resources" element={<MainLayout><ProtectedRoute><Resources /></ProtectedRoute></MainLayout>} />
+              <Route path="/login" element={<MainLayout><Login /></MainLayout>} />
+              <Route path="/register" element={<MainLayout><Register /></MainLayout>} />
+              <Route path="/profile" element={<MainLayout><ProtectedRoute><Profile /></ProtectedRoute></MainLayout>} />
+              <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
+            </Routes>
+          </AuthProvider>
+        </TooltipProvider>
       </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+    </QueryClientProvider>
+  </StrictMode>
 );
 
 export default App;
