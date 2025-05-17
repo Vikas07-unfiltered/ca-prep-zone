@@ -14,13 +14,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Register = () => {
   const { toast } = useToast();
+  const { signUp } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,20 +45,43 @@ const Register = () => {
       });
       return;
     }
+
+    if (!termsAccepted) {
+      toast({
+        title: "Error",
+        description: "Please accept the terms of service and privacy policy",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsLoading(true);
     
-    // Here you would integrate with Supabase or Firebase for registration
-    // For now we'll simulate registration
-    setTimeout(() => {
-      toast({
-        title: "Success",
-        description: "Account created successfully! Redirecting...",
-      });
-      setIsLoading(false);
+    try {
+      const { error } = await signUp(email, password, name);
       
-      // Redirect would happen here after actual registration
-    }, 1000);
+      if (error) {
+        toast({
+          title: "Registration Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Account created successfully! Please check your email for verification.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+      console.error("Registration error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -104,7 +130,11 @@ const Register = () => {
               </p>
             </div>
             <div className="flex items-center space-x-2">
-              <Checkbox id="terms" />
+              <Checkbox 
+                id="terms" 
+                checked={termsAccepted}
+                onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+              />
               <label
                 htmlFor="terms"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"

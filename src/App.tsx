@@ -4,6 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import MainLayout from "./components/layout/MainLayout";
 import Index from "./pages/Index";
 import Timer from "./pages/Timer";
@@ -23,17 +25,19 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<MainLayout><Index /></MainLayout>} />
-          <Route path="/timer" element={<MainLayout><Timer /></MainLayout>} />
-          <Route path="/planner" element={<MainLayout><Planner /></MainLayout>} />
-          <Route path="/rooms" element={<MainLayout><StudyRooms /></MainLayout>} />
-          <Route path="/resources" element={<MainLayout><Resources /></MainLayout>} />
-          <Route path="/login" element={<MainLayout><Login /></MainLayout>} />
-          <Route path="/register" element={<MainLayout><Register /></MainLayout>} />
-          <Route path="/profile" element={<MainLayout><Profile /></MainLayout>} />
-          <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<MainLayout><Index /></MainLayout>} />
+            <Route path="/timer" element={<MainLayout><ProtectedRoute><Timer /></ProtectedRoute></MainLayout>} />
+            <Route path="/planner" element={<MainLayout><ProtectedRoute><Planner /></ProtectedRoute></MainLayout>} />
+            <Route path="/rooms" element={<MainLayout><ProtectedRoute><StudyRooms /></ProtectedRoute></MainLayout>} />
+            <Route path="/resources" element={<MainLayout><ProtectedRoute><Resources /></ProtectedRoute></MainLayout>} />
+            <Route path="/login" element={<MainLayout><Login /></MainLayout>} />
+            <Route path="/register" element={<MainLayout><Register /></MainLayout>} />
+            <Route path="/profile" element={<MainLayout><ProtectedRoute><Profile /></ProtectedRoute></MainLayout>} />
+            <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

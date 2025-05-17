@@ -13,9 +13,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const { toast } = useToast();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -34,17 +36,31 @@ const Login = () => {
     
     setIsLoading(true);
     
-    // Here you would integrate with Supabase or Firebase for authentication
-    // For now we'll simulate a login
-    setTimeout(() => {
-      toast({
-        title: "Success",
-        description: "Successfully logged in! Redirecting...",
-      });
-      setIsLoading(false);
+    try {
+      const { error } = await signIn(email, password);
       
-      // Redirect would happen here after actual authentication
-    }, 1000);
+      if (error) {
+        toast({
+          title: "Login Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Successfully logged in!",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+      console.error("Login error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
