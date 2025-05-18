@@ -67,11 +67,20 @@ const Login = () => {
 
   return (
     <div className="container max-w-md py-16 md:py-24">
-      <Card>
+      <div className="mb-6 text-center">
+        <div className="inline-flex items-center mb-6">
+          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+            <span className="text-white text-lg font-bold">CA</span>
+          </div>
+          <h1 className="ml-2 text-3xl font-semibold">Unfiltered CA</h1>
+        </div>
+      </div>
+      
+      <Card className="border border-border/40 shadow-sm">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
+          <CardTitle className="text-2xl">Sign in</CardTitle>
           <CardDescription>
-            Enter your email and password to sign in to your account
+            Enter your email and password to access your account
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
@@ -85,6 +94,7 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="h-11"
               />
             </div>
             <div className="space-y-2">
@@ -103,13 +113,14 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                className="h-11"
               />
             </div>
           </CardContent>
           <CardFooter className="flex-col gap-4">
             <Button 
               type="submit"
-              className="w-full" 
+              className="w-full h-11" 
               disabled={isLoading}
             >
               {isLoading ? "Signing in..." : "Sign in"}
