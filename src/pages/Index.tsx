@@ -2,8 +2,11 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Clock, Calendar, Users, BookOpen } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
+  const { user } = useAuth();
+  
   return (
     <div>
       {/* Hero Section */}
@@ -19,14 +22,22 @@ const Index = () => {
               </p>
             </div>
             <div className="flex flex-col gap-2 min-[400px]:flex-row">
-              <Link to="/register">
-                <Button size="lg">Get Started</Button>
-              </Link>
-              <Link to="/login">
-                <Button variant="outline" size="lg">
-                  Sign In
-                </Button>
-              </Link>
+              {!user ? (
+                <>
+                  <Link to="/register">
+                    <Button size="lg">Get Started</Button>
+                  </Link>
+                  <Link to="/login">
+                    <Button variant="outline" size="lg">
+                      Sign In
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <Link to="/tools">
+                  <Button size="lg">Access Study Tools</Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -54,9 +65,15 @@ const Index = () => {
               <p className="text-muted-foreground">
                 Stay focused with customizable study intervals. Track subjects and analyze your study patterns.
               </p>
-              <Link to="/timer">
-                <Button variant="outline">Try Timer</Button>
-              </Link>
+              {user ? (
+                <Link to="/timer">
+                  <Button variant="outline">Try Timer</Button>
+                </Link>
+              ) : (
+                <Link to="/login">
+                  <Button variant="outline">Sign In to Access</Button>
+                </Link>
+              )}
             </div>
             <div className="flex flex-col items-start space-y-4 rounded-lg border bg-background p-6">
               <div className="rounded-full bg-primary/10 p-3">
@@ -66,9 +83,15 @@ const Index = () => {
               <p className="text-muted-foreground">
                 Plan your study sessions with our calendar tool. Set goals and track your progress over time.
               </p>
-              <Link to="/planner">
-                <Button variant="outline">Explore Planner</Button>
-              </Link>
+              {user ? (
+                <Link to="/planner">
+                  <Button variant="outline">Explore Planner</Button>
+                </Link>
+              ) : (
+                <Link to="/login">
+                  <Button variant="outline">Sign In to Access</Button>
+                </Link>
+              )}
             </div>
             <div className="flex flex-col items-start space-y-4 rounded-lg border bg-background p-6">
               <div className="rounded-full bg-primary/10 p-3">
@@ -78,9 +101,15 @@ const Index = () => {
               <p className="text-muted-foreground">
                 Join or create virtual study rooms. Chat with fellow students and stay motivated together.
               </p>
-              <Link to="/rooms">
-                <Button variant="outline">Join Room</Button>
-              </Link>
+              {user ? (
+                <Link to="/rooms">
+                  <Button variant="outline">Join Room</Button>
+                </Link>
+              ) : (
+                <Link to="/login">
+                  <Button variant="outline">Sign In to Access</Button>
+                </Link>
+              )}
             </div>
             <div className="flex flex-col items-start space-y-4 rounded-lg border bg-background p-6">
               <div className="rounded-full bg-primary/10 p-3">
@@ -90,9 +119,15 @@ const Index = () => {
               <p className="text-muted-foreground">
                 Access curated study materials, PDFs, and video tutorials to help you prepare for exams.
               </p>
-              <Link to="/resources">
-                <Button variant="outline">View Resources</Button>
-              </Link>
+              {user ? (
+                <Link to="/resources">
+                  <Button variant="outline">View Resources</Button>
+                </Link>
+              ) : (
+                <Link to="/login">
+                  <Button variant="outline">Sign In to Access</Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -162,14 +197,22 @@ const Index = () => {
               </p>
             </div>
             <div className="flex flex-col gap-2 min-[400px]:flex-row">
-              <Link to="/register">
-                <Button size="lg">Create Free Account</Button>
-              </Link>
-              <Link to="/login">
-                <Button variant="outline" size="lg">
-                  Sign In
-                </Button>
-              </Link>
+              {!user ? (
+                <>
+                  <Link to="/register">
+                    <Button size="lg">Create Free Account</Button>
+                  </Link>
+                  <Link to="/login">
+                    <Button variant="outline" size="lg">
+                      Sign In
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <Link to="/tools">
+                  <Button size="lg">Access All Tools</Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>

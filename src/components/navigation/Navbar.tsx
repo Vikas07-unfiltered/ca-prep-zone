@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -25,6 +25,12 @@ import {
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const location = useLocation();
+  
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location.pathname]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -47,13 +53,15 @@ const Navbar = () => {
           >
             Home
           </Link>
-          <Link 
-            to="/tools" 
-            className="text-muted-foreground hover:text-foreground flex items-center gap-1"
-          >
-            <LayoutDashboard className="h-4 w-4" />
-            <span>Tools</span>
-          </Link>
+          {user && (
+            <Link 
+              to="/tools" 
+              className="text-muted-foreground hover:text-foreground flex items-center gap-1"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              <span>Tools</span>
+            </Link>
+          )}
         </nav>
         
         <div className="flex items-center gap-4">
@@ -122,14 +130,17 @@ const Navbar = () => {
             >
               Home
             </Link>
-            <Link 
-              to="/tools" 
-              className="flex items-center gap-2 p-2 rounded-md hover:bg-accent"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              <LayoutDashboard className="h-5 w-5 text-primary" />
-              <span>Tools</span>
-            </Link>
+            
+            {user && (
+              <Link 
+                to="/tools" 
+                className="flex items-center gap-2 p-2 rounded-md hover:bg-accent"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <LayoutDashboard className="h-5 w-5 text-primary" />
+                <span>Tools</span>
+              </Link>
+            )}
 
             {user ? (
               <>
