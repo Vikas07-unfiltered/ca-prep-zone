@@ -29,10 +29,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         
+        // Only navigate on specific auth events, and don't redirect if we're already on these paths
         if (event === 'SIGNED_OUT') {
           navigate('/login');
-        } else if (event === 'SIGNED_IN') {
-          // Redirect to home page on sign in
+        } else if (event === 'SIGNED_IN' && (location.pathname === '/login' || location.pathname === '/register')) {
+          // Only redirect to home page on sign in if the user is on login or register page
           navigate('/');
         }
       }
@@ -46,7 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });

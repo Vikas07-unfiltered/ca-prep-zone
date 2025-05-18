@@ -74,14 +74,14 @@ const Navbar = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <Link to="/profile">
-                  <DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="w-full flex cursor-pointer items-center">
                     <User className="h-4 w-4 mr-2" />
                     Profile
-                  </DropdownMenuItem>
-                </Link>
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut}>
+                <DropdownMenuItem onClick={() => signOut()}>
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout
                 </DropdownMenuItem>
