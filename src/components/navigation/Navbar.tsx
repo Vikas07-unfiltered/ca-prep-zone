@@ -54,13 +54,43 @@ const Navbar = () => {
             Home
           </Link>
           {user && (
-            <Link 
-              to="/tools" 
-              className="text-muted-foreground hover:text-foreground flex items-center gap-1"
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              <span>Tools</span>
-            </Link>
+            <>
+              <Link 
+                to="/tools" 
+                className="text-muted-foreground hover:text-foreground flex items-center gap-1"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                <span>Tools</span>
+              </Link>
+              <Link 
+                to="/timer" 
+                className="text-muted-foreground hover:text-foreground flex items-center gap-1"
+              >
+                <Clock className="h-4 w-4" />
+                <span>Timer</span>
+              </Link>
+              <Link 
+                to="/planner" 
+                className="text-muted-foreground hover:text-foreground flex items-center gap-1"
+              >
+                <Calendar className="h-4 w-4" />
+                <span>Planner</span>
+              </Link>
+              <Link 
+                to="/rooms" 
+                className="text-muted-foreground hover:text-foreground flex items-center gap-1"
+              >
+                <Users className="h-4 w-4" />
+                <span>Study Rooms</span>
+              </Link>
+              <Link 
+                to="/resources" 
+                className="text-muted-foreground hover:text-foreground flex items-center gap-1"
+              >
+                <BookOpen className="h-4 w-4" />
+                <span>Resources</span>
+              </Link>
+            </>
           )}
         </nav>
         
@@ -132,14 +162,48 @@ const Navbar = () => {
             </Link>
             
             {user && (
-              <Link 
-                to="/tools" 
-                className="flex items-center gap-2 p-2 rounded-md hover:bg-accent"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <LayoutDashboard className="h-5 w-5 text-primary" />
-                <span>Tools</span>
-              </Link>
+              <>
+                <Link 
+                  to="/tools" 
+                  className="flex items-center gap-2 p-2 rounded-md hover:bg-accent"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <LayoutDashboard className="h-5 w-5 text-primary" />
+                  <span>Tools</span>
+                </Link>
+                <Link 
+                  to="/timer" 
+                  className="flex items-center gap-2 p-2 rounded-md hover:bg-accent"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Clock className="h-5 w-5 text-primary" />
+                  <span>Timer</span>
+                </Link>
+                <Link 
+                  to="/planner" 
+                  className="flex items-center gap-2 p-2 rounded-md hover:bg-accent"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Calendar className="h-5 w-5 text-primary" />
+                  <span>Planner</span>
+                </Link>
+                <Link 
+                  to="/rooms" 
+                  className="flex items-center gap-2 p-2 rounded-md hover:bg-accent"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Users className="h-5 w-5 text-primary" />
+                  <span>Study Rooms</span>
+                </Link>
+                <Link 
+                  to="/resources" 
+                  className="flex items-center gap-2 p-2 rounded-md hover:bg-accent"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  <span>Resources</span>
+                </Link>
+              </>
             )}
 
             {user ? (
