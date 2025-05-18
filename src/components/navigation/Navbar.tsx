@@ -2,18 +2,29 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   User,
+  LogOut,
+  Menu,
+  X,
+  LayoutDashboard,
   Clock,
   Calendar,
   Users,
   BookOpen,
-  Menu,
-  X,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -23,55 +34,66 @@ const Navbar = () => {
           className="flex items-center gap-2 text-xl font-bold text-primary"
         >
           <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
-            <span className="text-white text-sm font-bold">CA</span>
+            <span className="text-white text-sm font-bold">UC</span>
           </div>
-          <span>StudyHub</span>
+          <span>Unfiltered CA</span>
         </Link>
         
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
           <Link 
-            to="/timer" 
-            className="text-muted-foreground hover:text-foreground flex items-center gap-1"
+            to="/" 
+            className="text-muted-foreground hover:text-foreground"
           >
-            <Clock className="h-4 w-4" />
-            <span>Timer</span>
+            Home
           </Link>
           <Link 
-            to="/planner" 
+            to="/tools" 
             className="text-muted-foreground hover:text-foreground flex items-center gap-1"
           >
-            <Calendar className="h-4 w-4" />
-            <span>Planner</span>
-          </Link>
-          <Link 
-            to="/rooms" 
-            className="text-muted-foreground hover:text-foreground flex items-center gap-1"
-          >
-            <Users className="h-4 w-4" />
-            <span>Study Rooms</span>
-          </Link>
-          <Link 
-            to="/resources" 
-            className="text-muted-foreground hover:text-foreground flex items-center gap-1"
-          >
-            <BookOpen className="h-4 w-4" />
-            <span>Resources</span>
+            <LayoutDashboard className="h-4 w-4" />
+            <span>Tools</span>
           </Link>
         </nav>
         
         <div className="flex items-center gap-4">
-          <Link to="/login">
-            <Button variant="outline" size="sm" className="hidden md:flex">
-              <User className="h-4 w-4 mr-2" />
-              Sign In
-            </Button>
-          </Link>
-          <Link to="/register">
-            <Button size="sm" className="hidden md:flex">
-              Sign Up
-            </Button>
-          </Link>
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="hidden md:flex">
+                  <User className="h-4 w-4 mr-2" />
+                  {user.email?.split('@')[0]}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <Link to="/profile">
+                  <DropdownMenuItem>
+                    <User className="h-4 w-4 mr-2" />
+                    Profile
+                  </DropdownMenuItem>
+                </Link>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={signOut}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <Link to="/login">
+                <Button variant="outline" size="sm" className="hidden md:flex">
+                  <User className="h-4 w-4 mr-2" />
+                  Sign In
+                </Button>
+              </Link>
+              <Link to="/register">
+                <Button size="sm" className="hidden md:flex">
+                  Sign Up
+                </Button>
+              </Link>
+            </>
+          )}
           
           {/* Mobile Menu Button */}
           <Button 
@@ -94,48 +116,56 @@ const Navbar = () => {
         <div className="container md:hidden pb-4">
           <nav className="flex flex-col gap-4">
             <Link 
-              to="/timer" 
+              to="/" 
               className="flex items-center gap-2 p-2 rounded-md hover:bg-accent"
               onClick={() => setIsMenuOpen(false)}
             >
-              <Clock className="h-5 w-5 text-primary" />
-              <span>Timer</span>
+              Home
             </Link>
             <Link 
-              to="/planner" 
+              to="/tools" 
               className="flex items-center gap-2 p-2 rounded-md hover:bg-accent"
               onClick={() => setIsMenuOpen(false)}
             >
-              <Calendar className="h-5 w-5 text-primary" />
-              <span>Planner</span>
+              <LayoutDashboard className="h-5 w-5 text-primary" />
+              <span>Tools</span>
             </Link>
-            <Link 
-              to="/rooms" 
-              className="flex items-center gap-2 p-2 rounded-md hover:bg-accent"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              <Users className="h-5 w-5 text-primary" />
-              <span>Study Rooms</span>
-            </Link>
-            <Link 
-              to="/resources" 
-              className="flex items-center gap-2 p-2 rounded-md hover:bg-accent"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              <BookOpen className="h-5 w-5 text-primary" />
-              <span>Resources</span>
-            </Link>
-            <div className="flex gap-2 mt-2">
-              <Link to="/login" className="w-full" onClick={() => setIsMenuOpen(false)}>
-                <Button variant="outline" className="w-full">
-                  <User className="h-4 w-4 mr-2" />
-                  Sign In
+
+            {user ? (
+              <>
+                <Link 
+                  to="/profile" 
+                  className="flex items-center gap-2 p-2 rounded-md hover:bg-accent"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <User className="h-5 w-5 text-primary" />
+                  <span>Profile</span>
+                </Link>
+                <Button 
+                  variant="destructive" 
+                  className="mt-2"
+                  onClick={() => {
+                    signOut();
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
                 </Button>
-              </Link>
-              <Link to="/register" className="w-full" onClick={() => setIsMenuOpen(false)}>
-                <Button className="w-full">Sign Up</Button>
-              </Link>
-            </div>
+              </>
+            ) : (
+              <div className="flex gap-2 mt-2">
+                <Link to="/login" className="w-full" onClick={() => setIsMenuOpen(false)}>
+                  <Button variant="outline" className="w-full">
+                    <User className="h-4 w-4 mr-2" />
+                    Sign In
+                  </Button>
+                </Link>
+                <Link to="/register" className="w-full" onClick={() => setIsMenuOpen(false)}>
+                  <Button className="w-full">Sign Up</Button>
+                </Link>
+              </div>
+            )}
           </nav>
         </div>
       )}

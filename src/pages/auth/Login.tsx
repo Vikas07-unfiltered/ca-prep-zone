@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const Login = () => {
   const { toast } = useToast();
   const { signIn } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -50,6 +51,7 @@ const Login = () => {
           title: "Success",
           description: "Successfully logged in!",
         });
+        navigate("/"); // Redirect to home page after successful login
       }
     } catch (error) {
       toast({
