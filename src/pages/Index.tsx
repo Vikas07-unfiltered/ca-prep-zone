@@ -1,29 +1,23 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Clock, Calendar, Users, BookOpen } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-
 const Index = () => {
-  const { user } = useAuth();
-  
-  return (
-    <div>
+  const {
+    user
+  } = useAuth();
+  return <div>
       {/* Hero Section */}
       <section className="py-20 md:py-24 bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-background">
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center space-y-4 text-center">
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">
-                Master Your CA Studies with StudyHub
-              </h1>
+              <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">Master Your CA Studies with Unfiltered CA</h1>
               <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
-                Ace your exams with our specialized tools for CA students. Track progress, manage time, and study smarter.
-              </p>
+            </p>
             </div>
             <div className="flex flex-col gap-2 min-[400px]:flex-row">
-              {!user ? (
-                <>
+              {!user ? <>
                   <Link to="/register">
                     <Button size="lg">Get Started</Button>
                   </Link>
@@ -32,12 +26,9 @@ const Index = () => {
                       Sign In
                     </Button>
                   </Link>
-                </>
-              ) : (
-                <Link to="/tools">
+                </> : <Link to="/tools">
                   <Button size="lg">Access Study Tools</Button>
-                </Link>
-              )}
+                </Link>}
             </div>
           </div>
         </div>
@@ -65,15 +56,11 @@ const Index = () => {
               <p className="text-muted-foreground">
                 Stay focused with customizable study intervals. Track subjects and analyze your study patterns.
               </p>
-              {user ? (
-                <Link to="/timer">
+              {user ? <Link to="/timer">
                   <Button variant="outline">Try Timer</Button>
-                </Link>
-              ) : (
-                <Link to="/login">
+                </Link> : <Link to="/login">
                   <Button variant="outline">Sign In to Access</Button>
-                </Link>
-              )}
+                </Link>}
             </div>
             <div className="flex flex-col items-start space-y-4 rounded-lg border bg-background p-6">
               <div className="rounded-full bg-primary/10 p-3">
@@ -83,15 +70,11 @@ const Index = () => {
               <p className="text-muted-foreground">
                 Plan your study sessions with our calendar tool. Set goals and track your progress over time.
               </p>
-              {user ? (
-                <Link to="/planner">
+              {user ? <Link to="/planner">
                   <Button variant="outline">Explore Planner</Button>
-                </Link>
-              ) : (
-                <Link to="/login">
+                </Link> : <Link to="/login">
                   <Button variant="outline">Sign In to Access</Button>
-                </Link>
-              )}
+                </Link>}
             </div>
             <div className="flex flex-col items-start space-y-4 rounded-lg border bg-background p-6">
               <div className="rounded-full bg-primary/10 p-3">
@@ -101,15 +84,11 @@ const Index = () => {
               <p className="text-muted-foreground">
                 Join or create virtual study rooms. Chat with fellow students and stay motivated together.
               </p>
-              {user ? (
-                <Link to="/rooms">
+              {user ? <Link to="/rooms">
                   <Button variant="outline">Join Room</Button>
-                </Link>
-              ) : (
-                <Link to="/login">
+                </Link> : <Link to="/login">
                   <Button variant="outline">Sign In to Access</Button>
-                </Link>
-              )}
+                </Link>}
             </div>
             <div className="flex flex-col items-start space-y-4 rounded-lg border bg-background p-6">
               <div className="rounded-full bg-primary/10 p-3">
@@ -119,15 +98,11 @@ const Index = () => {
               <p className="text-muted-foreground">
                 Access curated study materials, PDFs, and video tutorials to help you prepare for exams.
               </p>
-              {user ? (
-                <Link to="/resources">
+              {user ? <Link to="/resources">
                   <Button variant="outline">View Resources</Button>
-                </Link>
-              ) : (
-                <Link to="/login">
+                </Link> : <Link to="/login">
                   <Button variant="outline">Sign In to Access</Button>
-                </Link>
-              )}
+                </Link>}
             </div>
           </div>
         </div>
@@ -197,8 +172,7 @@ const Index = () => {
               </p>
             </div>
             <div className="flex flex-col gap-2 min-[400px]:flex-row">
-              {!user ? (
-                <>
+              {!user ? <>
                   <Link to="/register">
                     <Button size="lg">Create Free Account</Button>
                   </Link>
@@ -207,18 +181,13 @@ const Index = () => {
                       Sign In
                     </Button>
                   </Link>
-                </>
-              ) : (
-                <Link to="/tools">
+                </> : <Link to="/tools">
                   <Button size="lg">Access All Tools</Button>
-                </Link>
-              )}
+                </Link>}
             </div>
           </div>
         </div>
       </section>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
