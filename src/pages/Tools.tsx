@@ -1,15 +1,20 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "react-router-dom";
+import { Routes, Route, Link, useLocation } from "react-router-dom";
 import { Clock, Calendar, Users, BookOpen } from 'lucide-react';
+import Timer from "./Timer";
+import Planner from "./Planner";
+import StudyRooms from "./StudyRooms";
 
 const Tools = () => {
+  const location = useLocation();
+  const isToolsHome = location.pathname === "/tools";
+
   const tools = [
     {
       title: "Study Timer",
       description: "Focus on your studies with our Pomodoro timer",
       icon: Clock,
-      path: "/timer",
+      path: "/tools/timer",
       color: "bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700",
       iconColor: "text-blue-500"
     },
@@ -17,7 +22,7 @@ const Tools = () => {
       title: "Study Planner",
       description: "Plan and organize your study schedule",
       icon: Calendar,
-      path: "/planner",
+      path: "/tools/planner",
       color: "bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700",
       iconColor: "text-green-500"
     },
@@ -25,7 +30,7 @@ const Tools = () => {
       title: "Study Rooms",
       description: "Join virtual study rooms with other students",
       icon: Users,
-      path: "/rooms",
+      path: "/tools/rooms",
       color: "bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700",
       iconColor: "text-purple-500"
     },
@@ -38,6 +43,16 @@ const Tools = () => {
       iconColor: "text-amber-500"
     }
   ];
+
+  if (!isToolsHome) {
+    return (
+      <Routes>
+        <Route path="/timer" element={<Timer />} />
+        <Route path="/planner" element={<Planner />} />
+        <Route path="/rooms" element={<StudyRooms />} />
+      </Routes>
+    );
+  }
 
   return (
     <div className="container py-8 md:py-12">
