@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,35 +10,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { format, isToday, isWithinInterval, addDays, startOfDay, addMinutes, isSameDay } from "date-fns";
 
-// Mock data for study sessions
-const initialStudySessions = [
-  {
-    id: "1",
-    subject: "Taxation",
-    date: new Date(),
-    startTime: "09:00",
-    endTime: "11:00",
-    notes: "Income Tax Act sections 80-90"
-  },
-  {
-    id: "2",
-    subject: "Audit",
-    date: addDays(new Date(), 1),
-    startTime: "14:00",
-    endTime: "16:30",
-    notes: "Study audit planning procedures"
-  },
-  {
-    id: "3",
-    subject: "Financial Reporting",
-    date: addDays(new Date(), 2),
-    startTime: "10:00",
-    endTime: "13:00",
-    notes: "IFRS standards review"
-  }
-];
+// Empty initial study sessions
+const initialStudySessions = [];
 
-// Mock subjects
+// Subjects
 const subjects = [
   "Taxation",
   "Audit",
@@ -351,24 +327,30 @@ const Planner = () => {
               <div className="space-y-8">
                 <div>
                   <h3 className="font-medium mb-4">Hours per Subject</h3>
-                  <div className="space-y-3">
-                    {Object.entries(getHoursPerSubject()).map(([subject, hours]) => (
-                      <div key={subject} className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span>{subject}</span>
-                          <span>{formatHours(hours)}</span>
+                  {Object.keys(getHoursPerSubject()).length === 0 ? (
+                    <p className="text-muted-foreground text-center py-4">
+                      No study data available. Add sessions to see analysis.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {Object.entries(getHoursPerSubject()).map(([subject, hours]) => (
+                        <div key={subject} className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span>{subject}</span>
+                            <span>{formatHours(hours)}</span>
+                          </div>
+                          <div className="w-full bg-secondary rounded-full h-2">
+                            <div 
+                              className="bg-primary rounded-full h-2" 
+                              style={{ 
+                                width: `${Math.min(100, (hours / 10) * 100)}%` 
+                              }}
+                            />
+                          </div>
                         </div>
-                        <div className="w-full bg-secondary rounded-full h-2">
-                          <div 
-                            className="bg-primary rounded-full h-2" 
-                            style={{ 
-                              width: `${Math.min(100, (hours / 10) * 100)}%` 
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -438,29 +420,39 @@ const Planner = () => {
                   .filter(session => new Date(session.date) >= new Date())
                   .sort((a, b) => a.date.getTime() - b.date.getTime())
                   .slice(0, 3)
-                  .map(session => (
-                    <div 
-                      key={session.id}
-                      className="flex items-center py-2 border-b last:border-0"
-                    >
-                      <div className="mr-4">
-                        <div className="text-sm font-medium">
-                          {format(session.date, "MMM d")}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {session.startTime} - {session.endTime}
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-medium">{session.subject}</div>
-                        {session.notes && (
-                          <div className="text-xs text-muted-foreground truncate">
-                            {session.notes}
+                  .length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4">
+                    No upcoming sessions. Schedule your first study session!
+                  </p>
+                ) : (
+                  studySessions
+                    .filter(session => new Date(session.date) >= new Date())
+                    .sort((a, b) => a.date.getTime() - b.date.getTime())
+                    .slice(0, 3)
+                    .map(session => (
+                      <div 
+                        key={session.id}
+                        className="flex items-center py-2 border-b last:border-0"
+                      >
+                        <div className="mr-4">
+                          <div className="text-sm font-medium">
+                            {format(session.date, "MMM d")}
                           </div>
-                        )}
+                          <div className="text-xs text-muted-foreground">
+                            {session.startTime} - {session.endTime}
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-sm font-medium">{session.subject}</div>
+                          {session.notes && (
+                            <div className="text-xs text-muted-foreground truncate">
+                              {session.notes}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                )}
               </div>
               
               <Button variant="outline" className="w-full mt-4" onClick={() => setIsAddingSession(true)}>

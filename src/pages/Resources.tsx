@@ -10,79 +10,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
-// Mock resources data
+// Empty initial resources
 const initialResources = {
-  documents: [
-    {
-      id: "doc-1",
-      title: "CA Final - Income Tax Law",
-      category: "Taxation",
-      type: "PDF",
-      size: "4.2 MB",
-      uploadDate: "2023-08-15",
-      url: "#",
-      thumbnailUrl: "/placeholder.svg"
-    },
-    {
-      id: "doc-2",
-      title: "Accounting Standards Guide",
-      category: "Financial Reporting",
-      type: "PDF",
-      size: "5.8 MB",
-      uploadDate: "2023-07-22",
-      url: "#",
-      thumbnailUrl: "/placeholder.svg"
-    },
-    {
-      id: "doc-3",
-      title: "Corporate Audit Manual",
-      category: "Audit",
-      type: "PDF",
-      size: "3.5 MB",
-      uploadDate: "2023-09-05",
-      url: "#",
-      thumbnailUrl: "/placeholder.svg"
-    },
-    {
-      id: "doc-4",
-      title: "Cost Accounting Formulas",
-      category: "Cost Accounting",
-      type: "PDF",
-      size: "2.1 MB",
-      uploadDate: "2023-08-30",
-      url: "#",
-      thumbnailUrl: "/placeholder.svg"
-    }
-  ],
-  videos: [
-    {
-      id: "vid-1",
-      title: "Understanding GST Calculations",
-      category: "Taxation",
-      duration: "45:21",
-      uploadDate: "2023-08-10",
-      url: "https://www.youtube.com/watch?v=example1",
-      thumbnailUrl: "/placeholder.svg"
-    },
-    {
-      id: "vid-2",
-      title: "Financial Statement Analysis",
-      category: "Financial Reporting",
-      duration: "38:15",
-      uploadDate: "2023-07-18",
-      url: "https://www.youtube.com/watch?v=example2",
-      thumbnailUrl: "/placeholder.svg"
-    },
-    {
-      id: "vid-3",
-      title: "Audit Planning Techniques",
-      category: "Audit",
-      duration: "52:40",
-      uploadDate: "2023-09-01",
-      url: "https://www.youtube.com/watch?v=example3",
-      thumbnailUrl: "/placeholder.svg"
-    }
-  ]
+  documents: [],
+  videos: []
 };
 
 const categories = [
@@ -392,7 +323,7 @@ const Resources = () => {
               <p className="text-muted-foreground">
                 {searchQuery
                   ? `No results for "${searchQuery}"`
-                  : "No documents available for this category"}
+                  : "No documents available. Add your first document!"}
               </p>
             </div>
           ) : (
@@ -438,7 +369,7 @@ const Resources = () => {
               <p className="text-muted-foreground">
                 {searchQuery
                   ? `No results for "${searchQuery}"`
-                  : "No videos available for this category"}
+                  : "No videos available. Add your first video!"}
               </p>
             </div>
           ) : (

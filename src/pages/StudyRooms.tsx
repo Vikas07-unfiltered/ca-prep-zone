@@ -11,64 +11,9 @@ import { BookOpen, Users, Video, Mic, MessageCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-// Mock data for study rooms
-const initialStudyRooms = [
-  {
-    id: "room-1",
-    name: "Taxation Study Group",
-    description: "Discussing GST and Direct Tax provisions",
-    participants: ["Rahul", "Priya", "Anjali"],
-    createdBy: "Rahul",
-    isActive: true,
-    subject: "Taxation"
-  },
-  {
-    id: "room-2",
-    name: "Audit Standards Discussion",
-    description: "Review of audit standards and procedures",
-    participants: ["Arjun", "Nikita"],
-    createdBy: "Arjun",
-    isActive: true,
-    subject: "Audit"
-  },
-  {
-    id: "room-3",
-    name: "Financial Reporting Group",
-    description: "IFRS and Ind AS discussion",
-    participants: ["Deepak", "Suman", "Kiran", "Neha"],
-    createdBy: "Deepak",
-    isActive: true,
-    subject: "Financial Reporting"
-  }
-];
-
-// Mock chat messages
-const initialMessages = [
-  {
-    id: "msg-1",
-    sender: "Priya",
-    content: "Has anyone covered AS 15 yet?",
-    timestamp: new Date(Date.now() - 1000 * 60 * 15) // 15 minutes ago
-  },
-  {
-    id: "msg-2",
-    sender: "Rahul",
-    content: "Yes, I just finished that section. What specific parts are you looking at?",
-    timestamp: new Date(Date.now() - 1000 * 60 * 10) // 10 minutes ago
-  },
-  {
-    id: "msg-3",
-    sender: "Priya",
-    content: "I'm having trouble with the recognition criteria for defined benefit plans",
-    timestamp: new Date(Date.now() - 1000 * 60 * 8) // 8 minutes ago
-  },
-  {
-    id: "msg-4",
-    sender: "Anjali",
-    content: "Check out page 237 of the study materials, there's a good example there",
-    timestamp: new Date(Date.now() - 1000 * 60 * 5) // 5 minutes ago
-  }
-];
+// Empty initial data
+const initialStudyRooms = [];
+const initialMessages = [];
 
 const StudyRooms = () => {
   const { toast } = useToast();
@@ -443,41 +388,53 @@ const StudyRooms = () => {
                   <TabsContent value="chat" className="space-y-4">
                     <Card className="border">
                       <ScrollArea className="h-[400px] p-4">
-                        <div className="space-y-4">
-                          {messages.map((message) => (
-                            <div
-                              key={message.id}
-                              className={`flex gap-3 ${
-                                message.sender === currentUser ? "justify-end" : ""
-                              }`}
-                            >
-                              {message.sender !== currentUser && (
-                                <Avatar className="h-8 w-8">
-                                  <AvatarFallback className="text-xs">
-                                    {message.sender.charAt(0)}
-                                  </AvatarFallback>
-                                </Avatar>
-                              )}
+                        {messages.length === 0 ? (
+                          <div className="flex items-center justify-center h-full text-center">
+                            <div>
+                              <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                              <p className="text-lg font-medium">No messages yet</p>
+                              <p className="text-sm text-muted-foreground">
+                                Be the first to send a message in this room!
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {messages.map((message) => (
                               <div
-                                className={`rounded-lg p-3 max-w-[80%] ${
-                                  message.sender === currentUser
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-muted"
+                                key={message.id}
+                                className={`flex gap-3 ${
+                                  message.sender === currentUser ? "justify-end" : ""
                                 }`}
                               >
-                                <div className="flex justify-between gap-4 mb-1">
-                                  <span className="font-medium text-sm">
-                                    {message.sender === currentUser ? "You" : message.sender}
-                                  </span>
-                                  <span className="text-xs opacity-70">
-                                    {formatTime(message.timestamp)}
-                                  </span>
+                                {message.sender !== currentUser && (
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarFallback className="text-xs">
+                                      {message.sender.charAt(0)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                )}
+                                <div
+                                  className={`rounded-lg p-3 max-w-[80%] ${
+                                    message.sender === currentUser
+                                      ? "bg-primary text-primary-foreground"
+                                      : "bg-muted"
+                                  }`}
+                                >
+                                  <div className="flex justify-between gap-4 mb-1">
+                                    <span className="font-medium text-sm">
+                                      {message.sender === currentUser ? "You" : message.sender}
+                                    </span>
+                                    <span className="text-xs opacity-70">
+                                      {formatTime(message.timestamp)}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm">{message.content}</p>
                                 </div>
-                                <p className="text-sm">{message.content}</p>
                               </div>
-                            </div>
-                          ))}
-                        </div>
+                            ))}
+                          </div>
+                        )}
                       </ScrollArea>
                       <div className="p-4 border-t">
                         <form onSubmit={handleSendMessage} className="flex gap-2">
