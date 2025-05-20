@@ -1,0 +1,101 @@
+import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+
+const supabaseUrl = 'https://iylyzckrakrpoddamwml.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5bHl6Y2tyYWtycG9kZGFtd21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc1MTcxNjgsImV4cCI6MjA2MzA5MzE2OH0.jy8IwzHGQ8HpRNrIyAbBPH6oi8oyGcvY43ig0G016Nk';
+export const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+export interface StudyRoom {
+  id?: string;
+  name: string;
+  description?: string;
+  ca_level: string;
+  created_by?: string;
+  participants?: string[];
+  created_at?: string;
+  room_code?: number;
+  daily_room_url?: string;
+}
+
+async function generateUniqueRoomCode(): Promise<number> {
+  let code: number;
+  let exists = true;
+  while (exists) {
+    code = Math.floor(100000 + Math.random() * 900000);
+    const { data } = await (supabaseClient as any).from('study_rooms').select('id').eq('room_code', code).single();
+    exists = !!data;
+  }
+  return code!;
+}
+
+async function createDailyRoom(): Promise<string> {
+  const res = await fetch('https://api.daily.co/v1/rooms', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer e11f71845384070a1844eca02fd2f039bb8828d803f4d10879f7f274ceb7ee0b'
+    },
+    body: JSON.stringify({
+      properties: {
+        enable_chat: true,
+        enable_screenshare: true,
+        start_video_off: true,
+        start_audio_off: false
+      }
+    })
+  });
+  const data = await res.json();
+  return data.url;
+}
+
+export const StudyRoomService = {
+  async getAll(): Promise<StudyRoom[]> {
+    const { data, error } = await (supabaseClient as any).from('study_rooms')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async create(room: Omit<StudyRoom, 'id' | 'created_at' | 'room_code' | 'daily_room_url'>): Promise<StudyRoom> {
+    const room_code = await generateUniqueRoomCode();
+    const daily_room_url = await createDailyRoom();
+    const { data, error } = await (supabaseClient as any).from('study_rooms')
+      .insert({ ...room, room_code, daily_room_url })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async joinRoom(room_code: number, participant: string): Promise<void> {
+    const { data, error } = await (supabaseClient as any).from('study_rooms')
+      .select('participants')
+      .eq('room_code', room_code)
+      .single();
+    if (error) throw error;
+    const participants = data.participants || [];
+    if (!participants.includes(participant)) {
+      participants.push(participant);
+      await (supabaseClient as any).from('study_rooms')
+        .update({ participants })
+        .eq('room_code', room_code);
+    }
+  },
+
+  async getRoomByCode(room_code: number): Promise<StudyRoom | null> {
+    const { data, error } = await (supabaseClient as any).from('study_rooms')
+      .select('*')
+      .eq('room_code', room_code)
+      .single();
+    if (error) return null;
+    return data;
+  },
+
+  async deleteRoom(roomId: string): Promise<void> {
+    const { error } = await (supabaseClient as any).from('study_rooms')
+      .delete()
+      .eq('id', roomId);
+    if (error) throw error;
+  }
+}; 

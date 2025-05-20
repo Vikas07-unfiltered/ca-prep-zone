@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BookOpen, Users, Video, Mic, MessageCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { StudyRoomService, StudyRoom } from "@/services/StudyRoomService";
+import { supabase } from "@/integrations/supabase/client";
+import DailyIframe from '@daily-co/daily-js';
 
 // Empty initial data
 const initialStudyRooms = [];
@@ -17,94 +20,126 @@ const initialMessages = [];
 
 const StudyRooms = () => {
   const { toast } = useToast();
-  const [studyRooms, setStudyRooms] = useState(initialStudyRooms);
+  const [studyRooms, setStudyRooms] = useState<StudyRoom[]>([]);
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [newRoom, setNewRoom] = useState({
     name: "",
     description: "",
-    subject: ""
+    ca_level: ""
   });
   const [messages, setMessages] = useState(initialMessages);
   const [newMessage, setNewMessage] = useState("");
-  const [roomIdToJoin, setRoomIdToJoin] = useState("");
+  const [roomCodeToJoin, setRoomCodeToJoin] = useState("");
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [creatorName, setCreatorName] = useState<string>("");
 
-  // Mock current user
-  const currentUser = "You";
+  // Place activeRoomData here so it's available for useEffect
+  const activeRoomData = activeRoom
+    ? studyRooms.find(room => room.id === activeRoom)
+    : null;
 
-  const handleCreateRoom = () => {
-    if (!newRoom.name || !newRoom.subject) {
+  // Fetch authenticated user
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => {
+      listener?.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Fetch rooms on mount and subscribe to realtime
+  useEffect(() => {
+    StudyRoomService.getAll().then(setStudyRooms).catch((e) => {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    });
+    const channel = supabase
+      .channel('study_rooms_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'study_rooms' }, payload => {
+        StudyRoomService.getAll().then(setStudyRooms);
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [toast]);
+
+  // Fetch creator's name when activeRoomData changes
+  useEffect(() => {
+    async function fetchCreatorName() {
+      if (activeRoomData?.created_by) {
+        const { data, error } = await (supabase as any).from('profiles').select('full_name').eq('id', activeRoomData.created_by).single();
+        setCreatorName(data?.full_name || activeRoomData.created_by);
+      }
+    }
+    fetchCreatorName();
+  }, [activeRoomData?.created_by]);
+
+  const handleCreateRoom = async () => {
+    if (!user) {
+      toast({ title: "Error", description: "You must be logged in to create a room.", variant: "destructive" });
+      return;
+    }
+    if (!newRoom.name || !newRoom.ca_level) {
       toast({
         title: "Error",
-        description: "Please provide a name and subject for the room",
+        description: "Please provide a name and CA level for the room",
         variant: "destructive",
       });
       return;
     }
-    
-    const roomId = `room-${Date.now()}`;
-    const createdRoom = {
-      id: roomId,
-      name: newRoom.name,
-      description: newRoom.description,
-      participants: [currentUser],
-      createdBy: currentUser,
-      isActive: true,
-      subject: newRoom.subject
-    };
-    
-    setStudyRooms([...studyRooms, createdRoom]);
-    setIsCreatingRoom(false);
-    setActiveRoom(roomId);
-    
-    toast({
-      title: "Room Created",
-      description: `Study room "${newRoom.name}" has been created`,
-    });
-    
-    // Reset form
-    setNewRoom({
-      name: "",
-      description: "",
-      subject: ""
-    });
+    try {
+      const createdRoom = await StudyRoomService.create({
+        name: newRoom.name,
+        description: newRoom.description,
+        ca_level: newRoom.ca_level,
+        created_by: user.id,
+        participants: [user.id],
+      });
+      setStudyRooms((prev) => [createdRoom, ...prev]);
+      setIsCreatingRoom(false);
+      setActiveRoom(createdRoom.id!);
+      toast({
+        title: "Room Created",
+        description: `Study room "${newRoom.name}" has been created`,
+      });
+      setNewRoom({ name: "", description: "", ca_level: "" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
   };
 
-  const handleJoinRoom = () => {
-    const roomToJoin = studyRooms.find(room => room.id === roomIdToJoin);
-    
-    if (!roomToJoin) {
-      toast({
-        title: "Room Not Found",
-        description: "Please enter a valid room ID",
-        variant: "destructive",
-      });
+  const handleJoinRoom = async () => {
+    if (!user) {
+      toast({ title: "Error", description: "You must be logged in to join a room.", variant: "destructive" });
       return;
     }
-    
-    if (!roomToJoin.participants.includes(currentUser)) {
-      const updatedRooms = studyRooms.map(room => {
-        if (room.id === roomIdToJoin) {
-          return {
-            ...room,
-            participants: [...room.participants, currentUser]
-          };
-        }
-        return room;
-      });
-      
+    try {
+      const roomToJoin = await StudyRoomService.getRoomByCode(Number(roomCodeToJoin));
+      if (!roomToJoin) {
+        toast({
+          title: "Room Not Found",
+          description: "Please enter a valid room code",
+          variant: "destructive",
+        });
+        return;
+      }
+      await StudyRoomService.joinRoom(Number(roomCodeToJoin), user.id);
+      const updatedRooms = await StudyRoomService.getAll();
       setStudyRooms(updatedRooms);
+      setActiveRoom(roomToJoin.id!);
+      setIsJoiningRoom(false);
+      setRoomCodeToJoin("");
+      toast({
+        title: "Joined Room",
+        description: `You have joined "${roomToJoin.name}"`,
+      });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
     }
-    
-    setActiveRoom(roomIdToJoin);
-    setIsJoiningRoom(false);
-    setRoomIdToJoin("");
-    
-    toast({
-      title: "Joined Room",
-      description: `You have joined "${roomToJoin.name}"`,
-    });
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -114,7 +149,7 @@ const StudyRooms = () => {
     
     const message = {
       id: `msg-${Date.now()}`,
-      sender: currentUser,
+      sender: user?.id,
       content: newMessage,
       timestamp: new Date()
     };
@@ -134,13 +169,73 @@ const StudyRooms = () => {
     });
   };
 
-  const activeRoomData = activeRoom
-    ? studyRooms.find(room => room.id === activeRoom)
-    : null;
+  const handleDeleteRoom = async () => {
+    if (!activeRoomData) return;
+    if (!window.confirm('Are you sure you want to delete this room? This action cannot be undone.')) return;
+    try {
+      await StudyRoomService.deleteRoom(activeRoomData.id!);
+      setActiveRoom(null);
+      setStudyRooms((prev) => prev.filter(room => room.id !== activeRoomData.id));
+      toast({
+        title: 'Room Deleted',
+        description: `Study room "${activeRoomData.name}" has been deleted.`,
+      });
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    }
+  };
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
+
+  console.log('activeRoomData:', activeRoomData);
+
+  function VoiceChat({ roomUrl }: { roomUrl: string }) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const callFrameRef = useRef<any>(null);
+
+    useEffect(() => {
+      // Defensive: Remove all iframes before creating a new one
+      if (containerRef.current) {
+        while (containerRef.current.firstChild) {
+          containerRef.current.removeChild(containerRef.current.firstChild);
+        }
+      }
+      // Defensive: Destroy any previous instance
+      if (callFrameRef.current) {
+        try { callFrameRef.current.destroy(); } catch {}
+        callFrameRef.current = null;
+      }
+
+      if (!roomUrl || !containerRef.current) return;
+
+      callFrameRef.current = DailyIframe.createFrame({
+        iframeStyle: {
+          position: "relative",
+          width: "100%",
+          height: "400px",
+          border: "1px solid #ccc",
+        },
+      });
+      callFrameRef.current.join({ url: roomUrl });
+      containerRef.current.appendChild(callFrameRef.current.iframe());
+
+      return () => {
+        if (callFrameRef.current) {
+          try { callFrameRef.current.destroy(); } catch {}
+          callFrameRef.current = null;
+        }
+        if (containerRef.current) {
+          while (containerRef.current.firstChild) {
+            containerRef.current.removeChild(containerRef.current.firstChild);
+          }
+        }
+      };
+    }, [roomUrl]);
+
+    return <div ref={containerRef} />;
+  }
 
   return (
     <div className="container py-8 md:py-12">
@@ -172,13 +267,20 @@ const StudyRooms = () => {
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="room-subject">Subject</Label>
-                      <Input
-                        id="room-subject"
-                        value={newRoom.subject}
-                        onChange={(e) => setNewRoom({...newRoom, subject: e.target.value})}
-                        placeholder="e.g., Taxation, Audit, Financial Reporting"
-                      />
+                      <Label htmlFor="room-ca-level">CA Level</Label>
+                      <Select
+                        value={newRoom.ca_level}
+                        onValueChange={(value) => setNewRoom({ ...newRoom, ca_level: value })}
+                      >
+                        <SelectTrigger id="room-ca-level">
+                          <SelectValue placeholder="Select CA Level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Foundation">Foundation</SelectItem>
+                          <SelectItem value="Inter">Inter</SelectItem>
+                          <SelectItem value="Final">Final</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="room-description">Description (Optional)</Label>
@@ -204,17 +306,18 @@ const StudyRooms = () => {
                   <DialogHeader>
                     <DialogTitle>Join Study Room</DialogTitle>
                     <DialogDescription>
-                      Enter a room ID to join an existing study room.
+                      Enter a room code to join an existing study room.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="room-id">Room ID</Label>
+                      <Label htmlFor="room-code">Room Code</Label>
                       <Input
-                        id="room-id"
-                        value={roomIdToJoin}
-                        onChange={(e) => setRoomIdToJoin(e.target.value)}
-                        placeholder="e.g., room-1"
+                        id="room-code"
+                        value={roomCodeToJoin}
+                        onChange={(e) => setRoomCodeToJoin(e.target.value.replace(/[^0-9]/g, ""))}
+                        placeholder="e.g., 123456"
+                        maxLength={6}
                       />
                     </div>
                   </div>
@@ -248,7 +351,7 @@ const StudyRooms = () => {
                         <div className="flex justify-between items-start mb-2">
                           <div>
                             <h3 className="font-medium">{room.name}</h3>
-                            <p className="text-sm text-muted-foreground">{room.subject}</p>
+                            <p className="text-sm text-muted-foreground">{room.ca_level}</p>
                           </div>
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
                             <Users className="h-4 w-4" />
@@ -337,11 +440,18 @@ const StudyRooms = () => {
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <div>
                   <CardTitle>{activeRoomData.name}</CardTitle>
-                  <CardDescription>{activeRoomData.subject}</CardDescription>
+                  <CardDescription>{activeRoomData.ca_level}</CardDescription>
                 </div>
-                <Button variant="outline" onClick={handleLeaveRoom}>
-                  Leave Room
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={handleLeaveRoom}>
+                    Leave Room
+                  </Button>
+                  {user?.id === activeRoomData.created_by && (
+                    <Button variant="destructive" onClick={handleDeleteRoom}>
+                      Delete Room
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="mb-4">
@@ -353,11 +463,16 @@ const StudyRooms = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <BookOpen className="h-4 w-4 text-muted-foreground" />
-                      <span>Subject: {activeRoomData.subject}</span>
+                      <span>CA Level: {activeRoomData.ca_level}</span>
                     </div>
                     <div className="sm:col-span-2">
                       <span className="text-muted-foreground">
-                        Created by: {activeRoomData.createdBy}
+                        Room Code: {activeRoomData.room_code}
+                      </span>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <span className="text-muted-foreground">
+                        Created by: {creatorName}
                       </span>
                     </div>
                     {activeRoomData.description && (
@@ -404,10 +519,10 @@ const StudyRooms = () => {
                               <div
                                 key={message.id}
                                 className={`flex gap-3 ${
-                                  message.sender === currentUser ? "justify-end" : ""
+                                  message.sender === user?.id ? "justify-end" : ""
                                 }`}
                               >
-                                {message.sender !== currentUser && (
+                                {message.sender !== user?.id && (
                                   <Avatar className="h-8 w-8">
                                     <AvatarFallback className="text-xs">
                                       {message.sender.charAt(0)}
@@ -416,14 +531,14 @@ const StudyRooms = () => {
                                 )}
                                 <div
                                   className={`rounded-lg p-3 max-w-[80%] ${
-                                    message.sender === currentUser
+                                    message.sender === user?.id
                                       ? "bg-primary text-primary-foreground"
                                       : "bg-muted"
                                   }`}
                                 >
                                   <div className="flex justify-between gap-4 mb-1">
                                     <span className="font-medium text-sm">
-                                      {message.sender === currentUser ? "You" : message.sender}
+                                      {message.sender === user?.id ? "You" : message.sender}
                                     </span>
                                     <span className="text-xs opacity-70">
                                       {formatTime(message.timestamp)}
@@ -452,24 +567,12 @@ const StudyRooms = () => {
                   
                   <TabsContent value="voice">
                     <Card className="border">
-                      <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-                        <div className="mb-4 p-4 rounded-full bg-secondary">
-                          <Mic className="h-8 w-8 text-primary" />
-                        </div>
-                        <h3 className="text-lg font-medium mb-2">Voice Chat</h3>
-                        <p className="text-muted-foreground mb-6">
-                          Voice chat feature will be available in the future update.
-                        </p>
-                        <div className="flex gap-2">
-                          <Button variant="outline" disabled>
-                            <Mic className="h-4 w-4 mr-2" />
-                            Unmute
-                          </Button>
-                          <Button variant="outline" disabled>
-                            <Video className="h-4 w-4 mr-2" />
-                            Enable Video
-                          </Button>
-                        </div>
+                      <CardContent>
+                        {activeRoomData?.daily_room_url ? (
+                          <VoiceChat key={activeRoomData.daily_room_url} roomUrl={activeRoomData.daily_room_url} />
+                        ) : (
+                          <p>No voice room available.</p>
+                        )}
                       </CardContent>
                     </Card>
                   </TabsContent>
@@ -491,9 +594,9 @@ const StudyRooms = () => {
                               </Avatar>
                               <div>
                                 <p className="font-medium">
-                                  {participant === currentUser ? "You" : participant}
+                                  {participant === user?.id ? "You" : participant}
                                 </p>
-                                {participant === activeRoomData.createdBy && (
+                                {participant === activeRoomData.created_by && (
                                   <p className="text-xs text-muted-foreground">Room Creator</p>
                                 )}
                               </div>
@@ -503,7 +606,7 @@ const StudyRooms = () => {
                       </CardContent>
                       <CardFooter>
                         <p className="text-sm text-muted-foreground">
-                          Room ID: {activeRoomData.id} (Share this ID to invite others)
+                          Room Code: {activeRoomData.room_code} (Share this code to invite others)
                         </p>
                       </CardFooter>
                     </Card>

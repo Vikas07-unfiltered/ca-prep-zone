@@ -1,14 +1,16 @@
-import { useTheme } from "next-themes"
+import { useTheme } from "../theme-provider"
 import { Toaster as Sonner, toast } from "sonner"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  const { theme } = useTheme()
+  const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  const currentTheme = theme === 'system' ? systemTheme : theme
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={currentTheme as ToasterProps["theme"]}
       className="toaster group"
       toastOptions={{
         classNames: {

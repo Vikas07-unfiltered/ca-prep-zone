@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { AnimatedButton } from "@/components/ui/animated-button";
 import {
   Card,
   CardContent,
@@ -14,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { Doodle } from "@/components/ui/Doodle";
 
 const Login = () => {
   const { toast } = useToast();
@@ -66,74 +66,80 @@ const Login = () => {
   };
 
   return (
-    <div className="container max-w-md py-16 md:py-24">
-      <div className="mb-6 text-center">
-        <div className="inline-flex items-center mb-6">
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-white text-lg font-bold">CA</span>
-          </div>
-          <h1 className="ml-2 text-3xl font-semibold">Unfiltered CA</h1>
-        </div>
-      </div>
-      
-      <Card className="border border-border/40 shadow-sm">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl">Sign in</CardTitle>
-          <CardDescription>
-            Enter your email and password to access your account
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleLogin}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="your.email@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="h-11"
-              />
+    <div className="relative">
+      <div className="container max-w-md py-16 md:py-24">
+        <div className="mb-6 text-center">
+          <div className="inline-flex items-center mb-6">
+            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+              <span className="text-white text-lg font-bold">CA</span>
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link 
-                  to="/forgot-password" 
-                  className="text-sm text-primary hover:underline"
-                >
-                  Forgot password?
+            <h1 className="ml-2 text-3xl font-semibold">Unfiltered CA</h1>
+          </div>
+        </div>
+        
+        <Card className="border border-border/40 shadow-sm">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl">Sign in</CardTitle>
+            <CardDescription>
+              Enter your email and password to access your account
+            </CardDescription>
+          </CardHeader>
+          <form onSubmit={handleLogin}>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="your.email@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link 
+                    to="/forgot-password" 
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <Input 
+                  id="password" 
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="h-11"
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="flex-col gap-4">
+              <AnimatedButton 
+                type="submit"
+                className="w-full h-11" 
+                disabled={isLoading}
+                hoverScale={1.02}
+              >
+                {isLoading ? "Signing in..." : "Sign in"}
+              </AnimatedButton>
+              <div className="text-center text-sm">
+                Don't have an account?{" "}
+                <Link to="/register" className="text-primary hover:underline">
+                  Sign up
                 </Link>
               </div>
-              <Input 
-                id="password" 
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="h-11"
-              />
-            </div>
-          </CardContent>
-          <CardFooter className="flex-col gap-4">
-            <Button 
-              type="submit"
-              className="w-full h-11" 
-              disabled={isLoading}
-            >
-              {isLoading ? "Signing in..." : "Sign in"}
-            </Button>
-            <div className="text-center text-sm">
-              Don't have an account?{" "}
-              <Link to="/register" className="text-primary hover:underline">
-                Sign up
-              </Link>
-            </div>
-          </CardFooter>
-        </form>
-      </Card>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
+      <div className="fixed bottom-4 right-4 z-0 opacity-60 pointer-events-none select-none">
+        <Doodle name="law" className="w-40 h-40" />
+      </div>
     </div>
   );
 };

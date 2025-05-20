@@ -1,12 +1,13 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { AnimatedButton } from "@/components/ui/animated-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { Pencil, Check, X } from "lucide-react";
+import { Doodle } from "@/components/ui/Doodle";
 
 const Timer = () => {
   const { toast } = useToast();
@@ -18,6 +19,10 @@ const Timer = () => {
   const [longBreakDuration, setLongBreakDuration] = useState(15);
   const [subject, setSubject] = useState("");
   const [sessions, setSessions] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editHours, setEditHours] = useState("0");
+  const [editMinutes, setEditMinutes] = useState("");
+  const [editSeconds, setEditSeconds] = useState("");
   const interval = useRef(null);
 
   useEffect(() => {
@@ -120,108 +125,177 @@ const Timer = () => {
     setTimeLeft(duration * 60);
   };
 
+  const handleEditTime = () => {
+    if (isActive) {
+      setIsActive(false);
+      clearInterval(interval.current);
+    }
+    setIsEditing(true);
+    setEditHours(Math.floor(timeLeft / 3600).toString());
+    setEditMinutes(Math.floor((timeLeft % 3600) / 60).toString());
+    setEditSeconds((timeLeft % 60).toString().padStart(2, "0"));
+  };
+
+  const handleSaveEdit = () => {
+    const hours = parseInt(editHours) || 0;
+    const minutes = parseInt(editMinutes) || 0;
+    const seconds = parseInt(editSeconds) || 0;
+    const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+
+    if (totalSeconds <= 0) {
+      toast({
+        title: "Invalid Time",
+        description: "Please enter a valid time greater than 0",
+        variant: "destructive",
+      });
+      return;
+    }
+    setTimeLeft(totalSeconds);
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+  };
+
   return (
-    <div className="container py-8 md:py-12">
-      <div className="mx-auto max-w-2xl">
-        <h1 className="text-3xl font-bold mb-6">Pomodoro Timer</h1>
-        
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="text-center text-2xl">
-              {currentMode === "focus" ? "Focus Time" : 
-               currentMode === "shortBreak" ? "Short Break" : "Long Break"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Properly nested Tabs structure */}
-            <Tabs defaultValue="focus" onValueChange={handleModeChange} className="w-full">
-              <TabsList className="grid grid-cols-3">
-                <TabsTrigger value="focus">Focus</TabsTrigger>
-                <TabsTrigger value="shortBreak">Short Break</TabsTrigger>
-                <TabsTrigger value="longBreak">Long Break</TabsTrigger>
-              </TabsList>
+    <div className="relative">
+      <div className="container py-8 md:py-12">
+        <div className="mx-auto max-w-2xl">
+          <h1 className="text-3xl font-bold mb-6">Pomodoro Timer</h1>
+          
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="text-center text-2xl">
+                {currentMode === "focus" ? "Focus Time" : 
+                 currentMode === "shortBreak" ? "Short Break" : "Long Break"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <Tabs defaultValue="focus" onValueChange={handleModeChange} className="w-full">
+                <TabsList className="grid grid-cols-3">
+                  <TabsTrigger value="focus">Focus</TabsTrigger>
+                  <TabsTrigger value="shortBreak">Short Break</TabsTrigger>
+                  <TabsTrigger value="longBreak">Long Break</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="focus" className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="subject">Study Subject</Label>
+                    <Input
+                      id="subject"
+                      placeholder="What are you studying?"
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
               
-              <TabsContent value="focus" className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="subject">Study Subject</Label>
-                  <Input
-                    id="subject"
-                    placeholder="What are you studying?"
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                  />
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative w-full max-w-[400px]">
+                  {isEditing ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        value={editHours}
+                        onChange={(e) => setEditHours(e.target.value)}
+                        className="w-20 text-center text-5xl font-mono h-20"
+                        placeholder="00"
+                      />
+                      <span className="text-5xl font-mono">:</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={editMinutes}
+                        onChange={(e) => setEditMinutes(e.target.value)}
+                        className="w-20 text-center text-5xl font-mono h-20"
+                        placeholder="00"
+                      />
+                      <span className="text-5xl font-mono">:</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={editSeconds}
+                        onChange={(e) => setEditSeconds(e.target.value.padStart(2, "0"))}
+                        className="w-20 text-center text-5xl font-mono h-20"
+                        placeholder="00"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-4">
+                      <h2 className="text-7xl font-mono font-bold">{formatTime(timeLeft)}</h2>
+                      <AnimatedButton
+                        variant="outline"
+                        size="icon"
+                        className="h-10 w-10 hover:bg-accent"
+                        onClick={handleEditTime}
+                        hoverScale={1.1}
+                      >
+                        <Pencil className="h-5 w-5" />
+                        <span className="sr-only">Edit timer</span>
+                      </AnimatedButton>
+                    </div>
+                  )}
                 </div>
-              </TabsContent>
-            </Tabs>
-            
-            <div className="text-center">
-              <h2 className="text-5xl font-mono font-bold">{formatTime(timeLeft)}</h2>
-            </div>
-            
-            <div className="flex justify-center gap-2">
-              <Button 
-                onClick={handleToggleTimer} 
-                variant={isActive ? "destructive" : "default"}
-                size="lg"
-              >
-                {isActive ? "Pause" : timeLeft === 0 ? "Restart" : "Start"}
-              </Button>
-              <Button 
-                onClick={handleResetTimer} 
-                variant="outline" 
-                size="lg"
-              >
-                Reset
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Timer Settings</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="focusTime">Focus Time (mins)</Label>
-                <Input
-                  id="focusTime"
-                  type="number"
-                  min="1"
-                  max="60"
-                  value={focusDuration}
-                  onChange={(e) => setFocusDuration(Number(e.target.value))}
-                  className="w-full"
-                />
+                
+                <div className="flex justify-center gap-4 mt-2">
+                  {isEditing ? (
+                    <>
+                      <AnimatedButton 
+                        onClick={handleSaveEdit}
+                        variant="default"
+                        size="lg"
+                        hoverScale={1.05}
+                        className="min-w-[120px]"
+                      >
+                        <Check className="h-5 w-5 mr-2" />
+                        Save
+                      </AnimatedButton>
+                      <AnimatedButton 
+                        onClick={handleCancelEdit}
+                        variant="outline"
+                        size="lg"
+                        hoverScale={1.05}
+                        className="min-w-[120px]"
+                      >
+                        <X className="h-5 w-5 mr-2" />
+                        Cancel
+                      </AnimatedButton>
+                    </>
+                  ) : (
+                    <>
+                      <AnimatedButton 
+                        onClick={handleToggleTimer} 
+                        variant={isActive ? "destructive" : "default"}
+                        size="lg"
+                        hoverScale={1.05}
+                        className="min-w-[120px]"
+                      >
+                        {isActive ? "Pause" : timeLeft === 0 ? "Restart" : "Start"}
+                      </AnimatedButton>
+                      <AnimatedButton 
+                        onClick={handleResetTimer} 
+                        variant="outline" 
+                        size="lg"
+                        hoverScale={1.05}
+                        className="min-w-[120px]"
+                      >
+                        Reset
+                      </AnimatedButton>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="shortBreakTime">Short Break (mins)</Label>
-                <Input
-                  id="shortBreakTime"
-                  type="number"
-                  min="1"
-                  max="30"
-                  value={shortBreakDuration}
-                  onChange={(e) => setShortBreakDuration(Number(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="longBreakTime">Long Break (mins)</Label>
-                <Input
-                  id="longBreakTime"
-                  type="number"
-                  min="1"
-                  max="60"
-                  value={longBreakDuration}
-                  onChange={(e) => setLongBreakDuration(Number(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+      <div className="fixed bottom-4 right-4 z-0 opacity-80 pointer-events-none select-none">
+        <Doodle name="idea" className="w-40 h-40" on={isActive} />
       </div>
     </div>
   );

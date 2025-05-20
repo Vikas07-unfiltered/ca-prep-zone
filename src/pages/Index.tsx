@@ -1,43 +1,53 @@
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Clock, Calendar, Users, BookOpen } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { AnimatedContainer, AnimatedList } from "@/components/ui/animated-container";
+import { AnimatedButton } from "@/components/ui/animated-button";
+import { Doodle } from "@/components/ui/Doodle";
+
 const Index = () => {
-  const {
-    user
-  } = useAuth();
-  return <div>
+  const { user } = useAuth();
+
+  return (
+    <div className="relative">
       {/* Hero Section */}
       <section className="py-20 md:py-24 bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-background">
         <div className="container px-4 md:px-6">
-          <div className="flex flex-col items-center space-y-4 text-center">
+          <AnimatedContainer className="flex flex-col items-center space-y-4 text-center">
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">Master Your CA Studies with Unfiltered CA</h1>
+              <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">
+                Master Your CA Studies with Unfiltered CA
+              </h1>
               <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
-            </p>
+                Your comprehensive platform for CA exam preparation
+              </p>
             </div>
-            <div className="flex flex-col gap-2 min-[400px]:flex-row">
-              {!user ? <>
+            <AnimatedContainer delay={0.2} className="flex flex-col gap-2 min-[400px]:flex-row">
+              {!user ? (
+                <>
                   <Link to="/register">
-                    <Button size="lg">Get Started</Button>
+                    <AnimatedButton size="lg" hoverScale={1.08}>Get Started</AnimatedButton>
                   </Link>
                   <Link to="/login">
-                    <Button variant="outline" size="lg">
+                    <AnimatedButton variant="outline" size="lg" hoverScale={1.05}>
                       Sign In
-                    </Button>
+                    </AnimatedButton>
                   </Link>
-                </> : <Link to="/tools">
-                  <Button size="lg">Access Study Tools</Button>
-                </Link>}
-            </div>
-          </div>
+                </>
+              ) : (
+                <Link to="/tools">
+                  <AnimatedButton size="lg" hoverScale={1.08}>Access Study Tools</AnimatedButton>
+                </Link>
+              )}
+            </AnimatedContainer>
+          </AnimatedContainer>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-12 md:py-16">
+      <section className="py-16 md:py-20">
         <div className="container px-4 md:px-6">
-          <div className="flex flex-col items-center justify-center space-y-4 text-center">
+          <AnimatedContainer className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
               <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
                 Study Tools Designed for CA Students
@@ -46,8 +56,13 @@ const Index = () => {
                 Everything you need to excel in your chartered accountancy studies, all in one place.
               </p>
             </div>
-          </div>
-          <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 py-12 md:grid-cols-2 lg:gap-12">
+          </AnimatedContainer>
+          
+          <AnimatedList
+            className="mx-auto grid max-w-5xl grid-cols-1 gap-6 py-12 md:grid-cols-2 lg:gap-12"
+            delay={0.2}
+            staggerDelay={0.1}
+          >
             <div className="flex flex-col items-start space-y-4 rounded-lg border bg-background p-6">
               <div className="rounded-full bg-primary/10 p-3">
                 <Clock className="h-6 w-6 text-primary" />
@@ -56,40 +71,55 @@ const Index = () => {
               <p className="text-muted-foreground">
                 Stay focused with customizable study intervals. Track subjects and analyze your study patterns.
               </p>
-              {user ? <Link to="/timer">
-                  <Button variant="outline">Try Timer</Button>
-                </Link> : <Link to="/login">
-                  <Button variant="outline">Sign In to Access</Button>
-                </Link>}
+              {user ? (
+                <Link to="/timer">
+                  <AnimatedButton variant="outline" hoverScale={1.05}>Try Timer</AnimatedButton>
+                </Link>
+              ) : (
+                <Link to="/login">
+                  <AnimatedButton variant="outline" hoverScale={1.05}>Sign In to Access</AnimatedButton>
+                </Link>
+              )}
             </div>
+
             <div className="flex flex-col items-start space-y-4 rounded-lg border bg-background p-6">
               <div className="rounded-full bg-primary/10 p-3">
                 <Calendar className="h-6 w-6 text-primary" />
               </div>
               <h3 className="text-xl font-bold">Study Planner</h3>
               <p className="text-muted-foreground">
-                Plan your study sessions with our calendar tool. Set goals and track your progress over time.
+                Plan your study schedule, set goals, and track your progress across all subjects.
               </p>
-              {user ? <Link to="/planner">
-                  <Button variant="outline">Explore Planner</Button>
-                </Link> : <Link to="/login">
-                  <Button variant="outline">Sign In to Access</Button>
-                </Link>}
+              {user ? (
+                <Link to="/planner">
+                  <AnimatedButton variant="outline" hoverScale={1.05}>Open Planner</AnimatedButton>
+                </Link>
+              ) : (
+                <Link to="/login">
+                  <AnimatedButton variant="outline" hoverScale={1.05}>Sign In to Access</AnimatedButton>
+                </Link>
+              )}
             </div>
+
             <div className="flex flex-col items-start space-y-4 rounded-lg border bg-background p-6">
               <div className="rounded-full bg-primary/10 p-3">
                 <Users className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-xl font-bold">Study Rooms</h3>
+              <h3 className="text-xl font-bold">Study Groups</h3>
               <p className="text-muted-foreground">
-                Join or create virtual study rooms. Chat with fellow students and stay motivated together.
+                Connect with fellow CA students, share resources, and study together.
               </p>
-              {user ? <Link to="/rooms">
-                  <Button variant="outline">Join Room</Button>
-                </Link> : <Link to="/login">
-                  <Button variant="outline">Sign In to Access</Button>
-                </Link>}
+              {user ? (
+                <Link to="/groups">
+                  <AnimatedButton variant="outline" hoverScale={1.05}>Join Groups</AnimatedButton>
+                </Link>
+              ) : (
+                <Link to="/login">
+                  <AnimatedButton variant="outline" hoverScale={1.05}>Sign In to Access</AnimatedButton>
+                </Link>
+              )}
             </div>
+
             <div className="flex flex-col items-start space-y-4 rounded-lg border bg-background p-6">
               <div className="rounded-full bg-primary/10 p-3">
                 <BookOpen className="h-6 w-6 text-primary" />
@@ -98,56 +128,55 @@ const Index = () => {
               <p className="text-muted-foreground">
                 Access curated study materials, PDFs, and video tutorials to help you prepare for exams.
               </p>
-              {user ? <Link to="/resources">
-                  <Button variant="outline">View Resources</Button>
-                </Link> : <Link to="/login">
-                  <Button variant="outline">Sign In to Access</Button>
-                </Link>}
+              {user ? (
+                <Link to="/resources">
+                  <AnimatedButton variant="outline" hoverScale={1.05}>View Resources</AnimatedButton>
+                </Link>
+              ) : (
+                <Link to="/login">
+                  <AnimatedButton variant="outline" hoverScale={1.05}>Sign In to Access</AnimatedButton>
+                </Link>
+              )}
             </div>
-          </div>
+          </AnimatedList>
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-12 md:py-16 bg-gradient-to-b from-white to-blue-50 dark:from-background dark:to-gray-900">
+      {/* Testimonials Section */}
+      <section className="py-16 md:py-20 bg-muted/50">
         <div className="container px-4 md:px-6">
-          <div className="flex flex-col items-center justify-center space-y-4 text-center">
+          <AnimatedContainer className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
               <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
-                What Students Say
+                What Our Students Say
               </h2>
               <p className="mx-auto max-w-[700px] text-muted-foreground">
-                Hear from CA students who have boosted their productivity with StudyHub.
+                Join thousands of successful CA students who have transformed their study experience.
               </p>
             </div>
-          </div>
-          <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 py-12 md:grid-cols-3">
+          </AnimatedContainer>
+
+          <AnimatedList
+            className="mx-auto grid max-w-5xl grid-cols-1 gap-6 py-12 md:grid-cols-3"
+            delay={0.2}
+            staggerDelay={0.1}
+          >
             <div className="flex flex-col justify-between space-y-4 rounded-lg border bg-background p-6">
               <div className="space-y-2">
                 <p className="text-muted-foreground">
-                  "The Pomodoro timer and subject tracking helped me study more efficiently for my CA Final exams."
-                </p>
-              </div>
-              <div>
-                <p className="font-medium">Arjun P.</p>
-                <p className="text-sm text-muted-foreground">CA Intermediate</p>
-              </div>
-            </div>
-            <div className="flex flex-col justify-between space-y-4 rounded-lg border bg-background p-6">
-              <div className="space-y-2">
-                <p className="text-muted-foreground">
-                  "The study rooms feature allowed me to connect with peers and solve problems together."
+                  "The Pomodoro timer has completely changed how I study. I'm more focused and productive than ever."
                 </p>
               </div>
               <div>
                 <p className="font-medium">Priya S.</p>
-                <p className="text-sm text-muted-foreground">CA Final</p>
+                <p className="text-sm text-muted-foreground">CA Intermediate</p>
               </div>
             </div>
+
             <div className="flex flex-col justify-between space-y-4 rounded-lg border bg-background p-6">
               <div className="space-y-2">
                 <p className="text-muted-foreground">
-                  "I love how the planner helps me visualize my study schedule across all subjects."
+                  "The study planner helps me stay organized and ensures I cover all subjects effectively."
                 </p>
               </div>
               <div>
@@ -155,14 +184,26 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">CA Foundation</p>
               </div>
             </div>
-          </div>
+
+            <div className="flex flex-col justify-between space-y-4 rounded-lg border bg-background p-6">
+              <div className="space-y-2">
+                <p className="text-muted-foreground">
+                  "The study groups feature helped me connect with other students and share valuable resources."
+                </p>
+              </div>
+              <div>
+                <p className="font-medium">Ananya K.</p>
+                <p className="text-sm text-muted-foreground">CA Final</p>
+              </div>
+            </div>
+          </AnimatedList>
         </div>
       </section>
 
       {/* CTA Section */}
       <section className="py-16 md:py-20">
         <div className="container px-4 md:px-6">
-          <div className="flex flex-col items-center justify-center space-y-4 text-center">
+          <AnimatedContainer className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
               <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
                 Ready to Elevate Your CA Studies?
@@ -171,23 +212,34 @@ const Index = () => {
                 Join thousands of CA students who are studying smarter, not harder.
               </p>
             </div>
-            <div className="flex flex-col gap-2 min-[400px]:flex-row">
-              {!user ? <>
+            <AnimatedContainer delay={0.2} className="flex flex-col gap-2 min-[400px]:flex-row">
+              {!user ? (
+                <>
                   <Link to="/register">
-                    <Button size="lg">Create Free Account</Button>
+                    <AnimatedButton size="lg" hoverScale={1.08}>Create Free Account</AnimatedButton>
                   </Link>
                   <Link to="/login">
-                    <Button variant="outline" size="lg">
+                    <AnimatedButton variant="outline" size="lg" hoverScale={1.05}>
                       Sign In
-                    </Button>
+                    </AnimatedButton>
                   </Link>
-                </> : <Link to="/tools">
-                  <Button size="lg">Access All Tools</Button>
-                </Link>}
-            </div>
-          </div>
+                </>
+              ) : (
+                <Link to="/tools">
+                  <AnimatedButton size="lg" hoverScale={1.08}>Access All Tools</AnimatedButton>
+                </Link>
+              )}
+            </AnimatedContainer>
+          </AnimatedContainer>
         </div>
       </section>
-    </div>;
+
+      {/* Doodle in bottom right */}
+      <div className="fixed bottom-4 right-4 z-0 opacity-60 pointer-events-none select-none">
+        <Doodle name="finance" className="w-40 h-40" />
+      </div>
+    </div>
+  );
 };
+
 export default Index;
