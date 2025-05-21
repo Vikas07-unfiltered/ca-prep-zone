@@ -10,13 +10,18 @@ import { BookOpen, Users, Video, Mic, MessageCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { StudyRoomService, StudyRoom } from "@/services/StudyRoomService";
+import { StudyRoomService, createDailyRoom, StudyRoom } from "@/services/StudyRoomService";
 import { supabase } from "@/integrations/supabase/client";
 import DailyIframe from '@daily-co/daily-js';
+import { motion } from "framer-motion";
+import { ScrollReveal } from "@/components/ScrollReveal";
 
 // Empty initial data
 const initialStudyRooms = [];
 const initialMessages = [];
+
+// Global singleton for DailyIframe call frame
+let globalCallFrame: any = null;
 
 const StudyRooms = () => {
   const { toast } = useToast();
@@ -34,6 +39,8 @@ const StudyRooms = () => {
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [creatorName, setCreatorName] = useState<string>("");
+  const [isStartingVoice, setIsStartingVoice] = useState(false);
+  const [selectedLevel, setSelectedLevel] = useState("All");
 
   // Place activeRoomData here so it's available for useEffect
   const activeRoomData = activeRoom
@@ -196,34 +203,13 @@ const StudyRooms = () => {
     const callFrameRef = useRef<any>(null);
 
     useEffect(() => {
-      // Defensive: Remove all iframes before creating a new one
-      if (containerRef.current) {
-        while (containerRef.current.firstChild) {
-          containerRef.current.removeChild(containerRef.current.firstChild);
-        }
-      }
-      // Defensive: Destroy any previous instance
-      if (callFrameRef.current) {
-        try { callFrameRef.current.destroy(); } catch {}
-        callFrameRef.current = null;
-      }
-
-      if (!roomUrl || !containerRef.current) return;
-
-      callFrameRef.current = DailyIframe.createFrame({
-        iframeStyle: {
-          position: "relative",
-          width: "100%",
-          height: "400px",
-          border: "1px solid #ccc",
-        },
-      });
-      callFrameRef.current.join({ url: roomUrl });
-      containerRef.current.appendChild(callFrameRef.current.iframe());
-
-      return () => {
+      const cleanup = () => {
         if (callFrameRef.current) {
-          try { callFrameRef.current.destroy(); } catch {}
+          try {
+            callFrameRef.current.destroy();
+          } catch (e) {
+            console.error('Error destroying call frame:', e);
+          }
           callFrameRef.current = null;
         }
         if (containerRef.current) {
@@ -232,388 +218,474 @@ const StudyRooms = () => {
           }
         }
       };
+
+      cleanup();
+
+      if (!roomUrl || !containerRef.current) return;
+
+      try {
+        callFrameRef.current = DailyIframe.createFrame({
+          iframeStyle: {
+            position: "relative",
+            width: "100%",
+            height: "400px",
+            border: "1px solid #ccc",
+          },
+        });
+        callFrameRef.current.join({ url: roomUrl });
+        containerRef.current.appendChild(callFrameRef.current.iframe());
+      } catch (e) {
+        console.error('Error creating call frame:', e);
+        cleanup();
+      }
+
+      return cleanup;
     }, [roomUrl]);
 
     return <div ref={containerRef} />;
   }
 
+  const handleStartVoiceChat = async () => {
+    if (!activeRoomData) return;
+    setIsStartingVoice(true);
+    try {
+      console.log('Starting voice chat...');
+      const url = await createDailyRoom();
+      console.log('Daily.co room URL:', url);
+      await StudyRoomService.updateRoom(activeRoomData.id!, { daily_room_url: url });
+      console.log('Room updated in Supabase');
+      const updatedRooms = await StudyRoomService.getAll();
+      setStudyRooms(updatedRooms);
+      toast({ title: "Voice Chat Started", description: "Voice chat is now available for this room." });
+    } catch (e) {
+      console.error('Failed to start voice chat:', e);
+      toast({ title: "Error", description: "Failed to start voice chat.", variant: "destructive" });
+    }
+    setIsStartingVoice(false);
+  };
+
+  const filteredRooms = studyRooms.filter(room =>
+    selectedLevel === "All" || room.ca_level === selectedLevel
+  );
+
   return (
     <div className="container py-8 md:py-12">
-      <h1 className="text-3xl font-bold mb-8">Study Rooms</h1>
+      <ScrollReveal>
+        <h1 className="text-3xl font-bold mb-8">Study Rooms</h1>
+      </ScrollReveal>
       
       {!activeRoom ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 space-y-6">
-            <div className="flex gap-4">
-              <Dialog open={isCreatingRoom} onOpenChange={setIsCreatingRoom}>
-                <DialogTrigger asChild>
-                  <Button>Create Room</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create Study Room</DialogTitle>
-                    <DialogDescription>
-                      Create a new virtual study room to collaborate with others.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="room-name">Room Name</Label>
-                      <Input
-                        id="room-name"
-                        value={newRoom.name}
-                        onChange={(e) => setNewRoom({...newRoom, name: e.target.value})}
-                        placeholder="e.g., Taxation Study Group"
-                      />
+        <ScrollReveal delay={0.1}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 space-y-6">
+              <div className="flex gap-4">
+                <Dialog open={isCreatingRoom} onOpenChange={setIsCreatingRoom}>
+                  <DialogTrigger asChild>
+                    <Button>Create Room</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create Study Room</DialogTitle>
+                      <DialogDescription>
+                        Create a new virtual study room to collaborate with others.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="room-name">Room Name</Label>
+                        <Input
+                          id="room-name"
+                          value={newRoom.name}
+                          onChange={(e) => setNewRoom({...newRoom, name: e.target.value})}
+                          placeholder="e.g., Taxation Study Group"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="room-ca-level">CA Level</Label>
+                        <Select
+                          value={newRoom.ca_level}
+                          onValueChange={(value) => setNewRoom({ ...newRoom, ca_level: value })}
+                        >
+                          <SelectTrigger id="room-ca-level">
+                            <SelectValue placeholder="Select CA Level" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Foundation">Foundation</SelectItem>
+                            <SelectItem value="Inter">Inter</SelectItem>
+                            <SelectItem value="Final">Final</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="room-description">Description (Optional)</Label>
+                        <Input
+                          id="room-description"
+                          value={newRoom.description}
+                          onChange={(e) => setNewRoom({...newRoom, description: e.target.value})}
+                          placeholder="Briefly describe the purpose of this room"
+                        />
+                      </div>
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="room-ca-level">CA Level</Label>
-                      <Select
-                        value={newRoom.ca_level}
-                        onValueChange={(value) => setNewRoom({ ...newRoom, ca_level: value })}
-                      >
-                        <SelectTrigger id="room-ca-level">
-                          <SelectValue placeholder="Select CA Level" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Foundation">Foundation</SelectItem>
-                          <SelectItem value="Inter">Inter</SelectItem>
-                          <SelectItem value="Final">Final</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <DialogFooter>
+                      <Button onClick={handleCreateRoom}>Create Room</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                
+                <Dialog open={isJoiningRoom} onOpenChange={setIsJoiningRoom}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline">Join Room</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Join Study Room</DialogTitle>
+                      <DialogDescription>
+                        Enter a room code to join an existing study room.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="room-code">Room Code</Label>
+                        <Input
+                          id="room-code"
+                          value={roomCodeToJoin}
+                          onChange={(e) => setRoomCodeToJoin(e.target.value.replace(/[^0-9]/g, ""))}
+                          placeholder="e.g., 123456"
+                          maxLength={6}
+                        />
+                      </div>
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="room-description">Description (Optional)</Label>
-                      <Input
-                        id="room-description"
-                        value={newRoom.description}
-                        onChange={(e) => setNewRoom({...newRoom, description: e.target.value})}
-                        placeholder="Briefly describe the purpose of this room"
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button onClick={handleCreateRoom}>Create Room</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                    <DialogFooter>
+                      <Button onClick={handleJoinRoom}>Join Room</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
               
-              <Dialog open={isJoiningRoom} onOpenChange={setIsJoiningRoom}>
-                <DialogTrigger asChild>
-                  <Button variant="outline">Join Room</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Join Study Room</DialogTitle>
-                    <DialogDescription>
-                      Enter a room code to join an existing study room.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="room-code">Room Code</Label>
-                      <Input
-                        id="room-code"
-                        value={roomCodeToJoin}
-                        onChange={(e) => setRoomCodeToJoin(e.target.value.replace(/[^0-9]/g, ""))}
-                        placeholder="e.g., 123456"
-                        maxLength={6}
-                      />
+              <div className="mb-4 flex gap-4 items-center">
+                <label className="font-medium">CA Level:</label>
+                <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Select CA Level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All</SelectItem>
+                    <SelectItem value="Foundation">Foundation</SelectItem>
+                    <SelectItem value="Inter">Inter</SelectItem>
+                    <SelectItem value="Final">Final</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Active Study Rooms</CardTitle>
+                  <CardDescription>
+                    Join an existing study room to collaborate with other students
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {filteredRooms.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">
+                      No active study rooms. Create one to get started!
+                    </p>
+                  ) : (
+                    <div className="space-y-4">
+                      {filteredRooms.map((room, i) => (
+                        <ScrollReveal delay={0.2 + i * 0.05}>
+                          <motion.div
+                            key={room.id}
+                            whileHover={{ scale: 1.02, boxShadow: "0 8px 24px rgba(0,0,0,0.08)" }}
+                            transition={{ type: "spring", stiffness: 300 }}
+                            className="border rounded-lg p-4 hover:border-primary transition-all duration-200 cursor-pointer"
+                            onClick={() => setActiveRoom(room.id)}
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h3 className="font-medium">{room.name}</h3>
+                                <p className="text-sm text-muted-foreground">{room.ca_level}</p>
+                              </div>
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <Users className="h-4 w-4" />
+                                <span>{room.participants.length}</span>
+                              </div>
+                            </div>
+                            {room.description && (
+                              <p className="text-sm mb-3">{room.description}</p>
+                            )}
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {room.participants.slice(0, 3).map((participant, i) => (
+                                <Avatar key={i} className="h-6 w-6">
+                                  <AvatarFallback className="text-xs">
+                                    {participant.charAt(0)}
+                                  </AvatarFallback>
+                                </Avatar>
+                              ))}
+                              {room.participants.length > 3 && (
+                                <div className="h-6 w-6 rounded-full bg-secondary flex items-center justify-center text-xs">
+                                  +{room.participants.length - 3}
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        </ScrollReveal>
+                      ))}
                     </div>
-                  </div>
-                  <DialogFooter>
-                    <Button onClick={handleJoinRoom}>Join Room</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                  )}
+                </CardContent>
+              </Card>
             </div>
             
-            <Card>
-              <CardHeader>
-                <CardTitle>Active Study Rooms</CardTitle>
-                <CardDescription>
-                  Join an existing study room to collaborate with other students
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {studyRooms.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    No active study rooms. Create one to get started!
-                  </p>
-                ) : (
-                  <div className="space-y-4">
-                    {studyRooms.map((room) => (
-                      <div
-                        key={room.id}
-                        className="border rounded-lg p-4 hover:border-primary transition-colors cursor-pointer"
-                        onClick={() => setActiveRoom(room.id)}
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h3 className="font-medium">{room.name}</h3>
-                            <p className="text-sm text-muted-foreground">{room.ca_level}</p>
-                          </div>
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <Users className="h-4 w-4" />
-                            <span>{room.participants.length}</span>
-                          </div>
-                        </div>
-                        {room.description && (
-                          <p className="text-sm mb-3">{room.description}</p>
-                        )}
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {room.participants.slice(0, 3).map((participant, i) => (
-                            <Avatar key={i} className="h-6 w-6">
-                              <AvatarFallback className="text-xs">
-                                {participant.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
-                          ))}
-                          {room.participants.length > 3 && (
-                            <div className="h-6 w-6 rounded-full bg-secondary flex items-center justify-center text-xs">
-                              +{room.participants.length - 3}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+            <div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Study Room Features</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-primary/10 p-2 rounded-full">
+                      <MessageCircle className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Text Chat</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Exchange messages and share information with fellow students
+                      </p>
+                    </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="bg-primary/10 p-2 rounded-full">
+                      <Mic className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Voice Communication</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Discuss concepts verbally for better understanding
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="bg-primary/10 p-2 rounded-full">
+                      <BookOpen className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Study Tracking</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Track study sessions and collaborate on specific topics
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex-col gap-4">
+                  <Button className="w-full active:scale-95 transition-transform" onClick={() => setIsCreatingRoom(true)}>
+                    Create a New Room
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
           </div>
-          
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Study Room Features</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="bg-primary/10 p-2 rounded-full">
-                    <MessageCircle className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Text Chat</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Exchange messages and share information with fellow students
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-3">
-                  <div className="bg-primary/10 p-2 rounded-full">
-                    <Mic className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Voice Communication</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Discuss concepts verbally for better understanding
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-3">
-                  <div className="bg-primary/10 p-2 rounded-full">
-                    <BookOpen className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Study Tracking</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Track study sessions and collaborate on specific topics
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="flex-col gap-4">
-                <Button className="w-full" onClick={() => setIsCreatingRoom(true)}>
-                  Create a New Room
-                </Button>
-              </CardFooter>
-            </Card>
-          </div>
-        </div>
+        </ScrollReveal>
       ) : (
         <div className="grid grid-cols-1 gap-6">
           {activeRoomData && (
-            <Card className="border-2 border-primary/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <div>
-                  <CardTitle>{activeRoomData.name}</CardTitle>
-                  <CardDescription>{activeRoomData.ca_level}</CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={handleLeaveRoom}>
-                    Leave Room
-                  </Button>
-                  {user?.id === activeRoomData.created_by && (
-                    <Button variant="destructive" onClick={handleDeleteRoom}>
-                      Delete Room
-                    </Button>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-4">
-                  <h3 className="font-medium mb-2">Room Info</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span>Participants: {activeRoomData.participants.length}</span>
+            <ScrollReveal delay={0.1}>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+                <Card className="border-2 border-primary/20">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                    <div>
+                      <CardTitle>{activeRoomData.name}</CardTitle>
+                      <CardDescription>{activeRoomData.ca_level}</CardDescription>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="h-4 w-4 text-muted-foreground" />
-                      <span>CA Level: {activeRoomData.ca_level}</span>
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={handleLeaveRoom}>
+                        Leave Room
+                      </Button>
+                      {user?.id === activeRoomData.created_by && (
+                        <Button variant="destructive" onClick={handleDeleteRoom}>
+                          Delete Room
+                        </Button>
+                      )}
                     </div>
-                    <div className="sm:col-span-2">
-                      <span className="text-muted-foreground">
-                        Room Code: {activeRoomData.room_code}
-                      </span>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <span className="text-muted-foreground">
-                        Created by: {creatorName}
-                      </span>
-                    </div>
-                    {activeRoomData.description && (
-                      <div className="sm:col-span-2 border-t pt-2 mt-1">
-                        <span className="block text-muted-foreground">Description:</span>
-                        <span>{activeRoomData.description}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <Tabs defaultValue="chat">
-                  <TabsList className="mb-4">
-                    <TabsTrigger value="chat">
-                      <MessageCircle className="h-4 w-4 mr-2" />
-                      Chat
-                    </TabsTrigger>
-                    <TabsTrigger value="voice">
-                      <Mic className="h-4 w-4 mr-2" />
-                      Voice
-                    </TabsTrigger>
-                    <TabsTrigger value="participants">
-                      <Users className="h-4 w-4 mr-2" />
-                      Participants
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="chat" className="space-y-4">
-                    <Card className="border">
-                      <ScrollArea className="h-[400px] p-4">
-                        {messages.length === 0 ? (
-                          <div className="flex items-center justify-center h-full text-center">
-                            <div>
-                              <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                              <p className="text-lg font-medium">No messages yet</p>
-                              <p className="text-sm text-muted-foreground">
-                                Be the first to send a message in this room!
-                              </p>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            {messages.map((message) => (
-                              <div
-                                key={message.id}
-                                className={`flex gap-3 ${
-                                  message.sender === user?.id ? "justify-end" : ""
-                                }`}
-                              >
-                                {message.sender !== user?.id && (
-                                  <Avatar className="h-8 w-8">
-                                    <AvatarFallback className="text-xs">
-                                      {message.sender.charAt(0)}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                )}
-                                <div
-                                  className={`rounded-lg p-3 max-w-[80%] ${
-                                    message.sender === user?.id
-                                      ? "bg-primary text-primary-foreground"
-                                      : "bg-muted"
-                                  }`}
-                                >
-                                  <div className="flex justify-between gap-4 mb-1">
-                                    <span className="font-medium text-sm">
-                                      {message.sender === user?.id ? "You" : message.sender}
-                                    </span>
-                                    <span className="text-xs opacity-70">
-                                      {formatTime(message.timestamp)}
-                                    </span>
-                                  </div>
-                                  <p className="text-sm">{message.content}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </ScrollArea>
-                      <div className="p-4 border-t">
-                        <form onSubmit={handleSendMessage} className="flex gap-2">
-                          <Input
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            placeholder="Type your message..."
-                            className="flex-1"
-                          />
-                          <Button type="submit">Send</Button>
-                        </form>
-                      </div>
-                    </Card>
-                  </TabsContent>
-                  
-                  <TabsContent value="voice">
-                    <Card className="border">
-                      <CardContent>
-                        {activeRoomData?.daily_room_url ? (
-                          <VoiceChat key={activeRoomData.daily_room_url} roomUrl={activeRoomData.daily_room_url} />
-                        ) : (
-                          <p>No voice room available.</p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                  
-                  <TabsContent value="participants">
-                    <Card className="border">
-                      <CardContent className="py-4">
-                        <h3 className="font-medium mb-4">Room Participants</h3>
-                        <div className="space-y-2">
-                          {activeRoomData.participants.map((participant, i) => (
-                            <div
-                              key={i}
-                              className="flex items-center gap-3 p-2 rounded-md hover:bg-accent"
-                            >
-                              <Avatar className="h-8 w-8">
-                                <AvatarFallback>
-                                  {participant.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-medium">
-                                  {participant === user?.id ? "You" : participant}
-                                </p>
-                                {participant === activeRoomData.created_by && (
-                                  <p className="text-xs text-muted-foreground">Room Creator</p>
-                                )}
-                              </div>
-                            </div>
-                          ))}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-4">
+                      <h3 className="font-medium mb-2">Room Info</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span>Participants: {activeRoomData.participants.length}</span>
                         </div>
-                      </CardContent>
-                      <CardFooter>
-                        <p className="text-sm text-muted-foreground">
-                          Room Code: {activeRoomData.room_code} (Share this code to invite others)
-                        </p>
-                      </CardFooter>
-                    </Card>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="h-4 w-4 text-muted-foreground" />
+                          <span>CA Level: {activeRoomData.ca_level}</span>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <span className="text-muted-foreground">
+                            Room Code: {activeRoomData.room_code}
+                          </span>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <span className="text-muted-foreground">
+                            Created by: {creatorName}
+                          </span>
+                        </div>
+                        {activeRoomData.description && (
+                          <div className="sm:col-span-2 border-t pt-2 mt-1">
+                            <span className="block text-muted-foreground">Description:</span>
+                            <span>{activeRoomData.description}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <Tabs defaultValue="chat">
+                      <TabsList className="mb-4">
+                        <TabsTrigger value="chat">
+                          <MessageCircle className="h-4 w-4 mr-2" />
+                          Chat
+                        </TabsTrigger>
+                        <TabsTrigger value="voice">
+                          <Mic className="h-4 w-4 mr-2" />
+                          Voice
+                        </TabsTrigger>
+                        <TabsTrigger value="participants">
+                          <Users className="h-4 w-4 mr-2" />
+                          Participants
+                        </TabsTrigger>
+                      </TabsList>
+                      
+                      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                        <TabsContent value="chat" className="space-y-4">
+                          <Card className="border">
+                            <ScrollArea className="h-[400px] p-4">
+                              {messages.length === 0 ? (
+                                <div className="flex items-center justify-center h-full text-center">
+                                  <div>
+                                    <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                    <p className="text-lg font-medium">No messages yet</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      Be the first to send a message in this room!
+                                    </p>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="space-y-4">
+                                  {messages.map((message) => (
+                                    <motion.div
+                                      key={message.id}
+                                      initial={{ opacity: 0, x: 30 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ duration: 0.3 }}
+                                      className={`flex gap-3 ${
+                                        message.sender === user?.id ? "justify-end" : ""
+                                      }`}
+                                    >
+                                      {message.sender !== user?.id && (
+                                        <Avatar className="h-8 w-8">
+                                          <AvatarFallback className="text-xs">
+                                            {message.sender.charAt(0)}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                      )}
+                                      <div
+                                        className={`rounded-lg p-3 max-w-[80%] ${
+                                          message.sender === user?.id
+                                            ? "bg-primary text-primary-foreground"
+                                            : "bg-muted"
+                                        }`}
+                                      >
+                                        <div className="flex justify-between gap-4 mb-1">
+                                          <span className="font-medium text-sm">
+                                            {message.sender === user?.id ? "You" : message.sender}
+                                          </span>
+                                          <span className="text-xs opacity-70">
+                                            {formatTime(message.timestamp)}
+                                          </span>
+                                        </div>
+                                        <p className="text-sm">{message.content}</p>
+                                      </div>
+                                    </motion.div>
+                                  ))}
+                                </div>
+                              )}
+                            </ScrollArea>
+                            <div className="p-4 border-t">
+                              <form onSubmit={handleSendMessage} className="flex gap-2">
+                                <Input
+                                  value={newMessage}
+                                  onChange={(e) => setNewMessage(e.target.value)}
+                                  placeholder="Type your message..."
+                                  className="flex-1"
+                                />
+                                <Button type="submit">Send</Button>
+                              </form>
+                            </div>
+                          </Card>
+                        </TabsContent>
+                      </motion.div>
+                      
+                      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                        <TabsContent value="voice">
+                          <Card className="border">
+                            <CardContent>
+                              {!activeRoomData?.daily_room_url || activeRoomData.daily_room_url === "null" ? (
+                                <div className="flex flex-col items-center gap-4">
+                                  <p>No voice room available.</p>
+                                  <Button onClick={handleStartVoiceChat} disabled={isStartingVoice}>
+                                    {isStartingVoice ? "Starting..." : "Start Voice Chat"}
+                                  </Button>
+                                </div>
+                              ) : (
+                                <VoiceChat key={activeRoomData.daily_room_url} roomUrl={activeRoomData.daily_room_url} />
+                              )}
+                            </CardContent>
+                          </Card>
+                        </TabsContent>
+                      </motion.div>
+                      
+                      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                        <TabsContent value="participants">
+                          <Card className="border">
+                            <CardContent className="py-4">
+                              <h3 className="font-medium mb-4">Room Participants</h3>
+                              <div className="space-y-2">
+                                {activeRoomData.participants.map((participant, i) => (
+                                  <div
+                                    key={i}
+                                    className="flex items-center gap-3 p-2 rounded-md hover:bg-accent"
+                                  >
+                                    <Avatar className="h-8 w-8">
+                                      <AvatarFallback>
+                                        {participant.charAt(0)}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <p className="font-medium">
+                                        {participant === user?.id ? "You" : participant}
+                                      </p>
+                                      {participant === activeRoomData.created_by && (
+                                        <p className="text-xs text-muted-foreground">Room Creator</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </CardContent>
+                            <CardFooter>
+                              <p className="text-sm text-muted-foreground">
+                                Room Code: {activeRoomData.room_code} (Share this code to invite others)
+                              </p>
+                            </CardFooter>
+                          </Card>
+                        </TabsContent>
+                      </motion.div>
+                    </Tabs>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </ScrollReveal>
           )}
         </div>
       )}

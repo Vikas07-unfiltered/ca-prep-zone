@@ -28,7 +28,7 @@ async function generateUniqueRoomCode(): Promise<number> {
   return code!;
 }
 
-async function createDailyRoom(): Promise<string> {
+export async function createDailyRoom(): Promise<string> {
   const res = await fetch('https://api.daily.co/v1/rooms', {
     method: 'POST',
     headers: {
@@ -59,9 +59,8 @@ export const StudyRoomService = {
 
   async create(room: Omit<StudyRoom, 'id' | 'created_at' | 'room_code' | 'daily_room_url'>): Promise<StudyRoom> {
     const room_code = await generateUniqueRoomCode();
-    const daily_room_url = await createDailyRoom();
     const { data, error } = await (supabaseClient as any).from('study_rooms')
-      .insert({ ...room, room_code, daily_room_url })
+      .insert({ ...room, room_code })
       .select()
       .single();
     if (error) throw error;
@@ -69,12 +68,28 @@ export const StudyRoomService = {
   },
 
   async joinRoom(room_code: number, participant: string): Promise<void> {
-    const { data, error } = await (supabaseClient as any).from('study_rooms')
+    // Fetch the room and its participants
+    const { data: roomData, error: roomError } = await (supabaseClient as any).from('study_rooms')
       .select('participants')
       .eq('room_code', room_code)
       .single();
-    if (error) throw error;
-    const participants = data.participants || [];
+    if (roomError) throw roomError;
+    const participants = roomData.participants || [];
+
+    // Limit: Only 50 users can join one room
+    if (participants.length >= 50 && !participants.includes(participant)) {
+      throw new Error('This room already has 50 participants.');
+    }
+
+    // Limit: One user can join only 5 rooms
+    const { count: userRoomCount, error: userRoomError } = await (supabaseClient as any).from('study_rooms')
+      .select('id', { count: 'exact', head: true })
+      .contains('participants', [participant]);
+    if (userRoomError) throw userRoomError;
+    if (userRoomCount >= 5 && !participants.includes(participant)) {
+      throw new Error('You can only join up to 5 rooms.');
+    }
+
     if (!participants.includes(participant)) {
       participants.push(participant);
       await (supabaseClient as any).from('study_rooms')
@@ -95,6 +110,13 @@ export const StudyRoomService = {
   async deleteRoom(roomId: string): Promise<void> {
     const { error } = await (supabaseClient as any).from('study_rooms')
       .delete()
+      .eq('id', roomId);
+    if (error) throw error;
+  },
+
+  async updateRoom(roomId: string, updates: Partial<StudyRoom>): Promise<void> {
+    const { error } = await (supabaseClient as any).from('study_rooms')
+      .update(updates)
       .eq('id', roomId);
     if (error) throw error;
   }

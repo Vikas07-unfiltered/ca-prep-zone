@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,6 +8,8 @@ import { Download, BookOpen, Youtube } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { ScrollReveal } from "@/components/ScrollReveal";
+import { supabase } from "@/integrations/supabase/client"; // adjust path if needed
 
 // Empty initial resources
 const initialResources = {
@@ -26,12 +27,20 @@ const categories = [
   "Economics"
 ];
 
+// Utility to extract YouTube video ID
+function getYouTubeId(url: string) {
+  // Handles youtube.com/watch?v=, youtu.be/, youtube.com/embed/, youtube.com/shorts/
+  const regExp = /(?:youtube\.com\/(?:.*v=|(?:v|embed|shorts)\/)|youtu\.be\/)([\w-]{11})/;
+  const match = url.match(regExp);
+  return match ? match[1] : null;
+}
+
 const Resources = () => {
   const { toast } = useToast();
   const [resources, setResources] = useState(initialResources);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false); // Mock admin state
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [isAddingVideo, setIsAddingVideo] = useState(false);
   const [newDocument, setNewDocument] = useState({
@@ -41,22 +50,45 @@ const Resources = () => {
   });
   const [newVideo, setNewVideo] = useState({
     title: "",
-    category: "",
     url: "",
-    duration: ""
+    duration: "",
+    ca_level: "",
+    subject: ""
   });
+  const [selectedLevel, setSelectedLevel] = useState("All");
 
-  const filteredDocuments = resources.documents.filter(doc => {
-    const matchesCategory = selectedCategory === "All" || doc.category === selectedCategory;
-    const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', user.id)
+          .single();
 
-  const filteredVideos = resources.videos.filter(video => {
-    const matchesCategory = selectedCategory === "All" || video.category === selectedCategory;
-    const matchesSearch = video.title.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+        if (error) {
+          setIsAdmin(false);
+        } else if (data && "is_admin" in data) {
+          setIsAdmin((data as any).is_admin === true);
+        } else {
+          setIsAdmin(false);
+        }
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const filteredDocuments = resources.documents.filter(doc =>
+    (selectedLevel === "All" || doc.ca_level === selectedLevel) &&
+    (selectedCategory === "All" || doc.category === selectedCategory) &&
+    doc.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredVideos = resources.videos.filter(video =>
+    (selectedLevel === "All" || video.ca_level === selectedLevel) &&
+    video.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleDocumentUpload = () => {
     if (!newDocument.title || !newDocument.category) {
@@ -103,7 +135,7 @@ const Resources = () => {
   };
 
   const handleVideoAdd = () => {
-    if (!newVideo.title || !newVideo.category || !newVideo.url) {
+    if (!newVideo.title || !newVideo.url) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -115,11 +147,11 @@ const Resources = () => {
     const newVid = {
       id: `vid-${Date.now()}`,
       title: newVideo.title,
-      category: newVideo.category,
       duration: newVideo.duration || "00:00",
       uploadDate: new Date().toISOString().split('T')[0],
       url: newVideo.url,
-      thumbnailUrl: "/placeholder.svg"
+      thumbnailUrl: "/placeholder.svg",
+      ca_level: newVideo.ca_level
     };
     
     setResources({
@@ -137,9 +169,10 @@ const Resources = () => {
     // Reset form
     setNewVideo({
       title: "",
-      category: "",
       url: "",
-      duration: ""
+      duration: "",
+      ca_level: "",
+      subject: ""
     });
   };
 
@@ -150,7 +183,9 @@ const Resources = () => {
 
   return (
     <div className="container py-8 md:py-12">
-      <h1 className="text-3xl font-bold mb-8">Study Resources</h1>
+      <ScrollReveal>
+        <h1 className="text-3xl font-bold mb-8">Study Resources</h1>
+      </ScrollReveal>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div className="md:col-span-2">
@@ -180,72 +215,33 @@ const Resources = () => {
         </div>
       </div>
       
+      <div className="mb-4 flex gap-4 items-center">
+        <label className="font-medium">CA Level:</label>
+        <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Select CA Level" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All">All</SelectItem>
+            <SelectItem value="Foundation">Foundation</SelectItem>
+            <SelectItem value="Inter">Inter</SelectItem>
+            <SelectItem value="Final">Final</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      {/* Add YouTube Video Button and Dialog (visible to all users) */}
       {isAdmin && (
         <div className="flex gap-4 mb-8">
-          <Dialog open={isUploadingDocument} onOpenChange={setIsUploadingDocument}>
-            <DialogTrigger asChild>
-              <Button>Upload Document</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Upload Document</DialogTitle>
-                <DialogDescription>
-                  Add a new document resource for students.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="doc-title">Title</Label>
-                  <Input
-                    id="doc-title"
-                    value={newDocument.title}
-                    onChange={(e) => setNewDocument({...newDocument, title: e.target.value})}
-                    placeholder="e.g., Income Tax Guide"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="doc-category">Category</Label>
-                  <Select
-                    value={newDocument.category}
-                    onValueChange={(value) => setNewDocument({...newDocument, category: value})}
-                  >
-                    <SelectTrigger id="doc-category">
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.filter(c => c !== "All").map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="doc-file">File</Label>
-                  <Input
-                    id="doc-file"
-                    type="file"
-                    onChange={handleFileChange}
-                    accept=".pdf"
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={handleDocumentUpload}>Upload</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-          
           <Dialog open={isAddingVideo} onOpenChange={setIsAddingVideo}>
             <DialogTrigger asChild>
-              <Button variant="outline">Add Video</Button>
+              <Button variant="outline">Add YouTube Video</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add Video Resource</DialogTitle>
+                <DialogTitle>Add YouTube Video</DialogTitle>
                 <DialogDescription>
-                  Add a new video resource for students.
+                  Add a new YouTube video resource for students. Paste a valid YouTube link to see a preview.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -259,31 +255,67 @@ const Resources = () => {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="video-category">Category</Label>
+                  <Label htmlFor="video-ca-level">CA Level</Label>
                   <Select
-                    value={newVideo.category}
-                    onValueChange={(value) => setNewVideo({...newVideo, category: value})}
+                    value={newVideo.ca_level}
+                    onValueChange={(value) => setNewVideo({ ...newVideo, ca_level: value })}
                   >
-                    <SelectTrigger id="video-category">
-                      <SelectValue placeholder="Select a category" />
+                    <SelectTrigger id="video-ca-level">
+                      <SelectValue placeholder="Select CA Level" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.filter(c => c !== "All").map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="Foundation">Foundation</SelectItem>
+                      <SelectItem value="Inter">Inter</SelectItem>
+                      <SelectItem value="Final">Final</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+                {newVideo.ca_level === "Foundation" && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="video-subject">Subject</Label>
+                    <Select
+                      value={newVideo.subject}
+                      onValueChange={(value) => setNewVideo({ ...newVideo, subject: value })}
+                    >
+                      <SelectTrigger id="video-subject">
+                        <SelectValue placeholder="Select Subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Accounting">Accounting</SelectItem>
+                        <SelectItem value="Business Laws">Business Laws</SelectItem>
+                        <SelectItem value="Quantitative">Quantitative</SelectItem>
+                        <SelectItem value="Business Economic">Business Economic</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="grid gap-2">
-                  <Label htmlFor="video-url">Video URL</Label>
+                  <Label htmlFor="video-url">YouTube URL</Label>
                   <Input
                     id="video-url"
                     value={newVideo.url}
                     onChange={(e) => setNewVideo({...newVideo, url: e.target.value})}
                     placeholder="e.g., https://youtube.com/watch?v=..."
                   />
+                  {/* Show error if not valid */}
+                  {newVideo.url && !getYouTubeId(newVideo.url) && (
+                    <span className="text-red-500 text-xs">Please enter a valid YouTube URL.</span>
+                  )}
+                  {/* Show preview if valid */}
+                  {getYouTubeId(newVideo.url) && (
+                    <div className="mt-2">
+                      <iframe
+                        width="100%"
+                        height="220"
+                        src={`https://www.youtube.com/embed/${getYouTubeId(newVideo.url)}`}
+                        title={newVideo.title || 'YouTube Preview'}
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-56 rounded"
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="video-duration">Duration (Optional)</Label>
@@ -296,7 +328,17 @@ const Resources = () => {
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleVideoAdd}>Add Video</Button>
+                <Button
+                  onClick={handleVideoAdd}
+                  disabled={
+                    !newVideo.title ||
+                    !getYouTubeId(newVideo.url) ||
+                    !newVideo.ca_level ||
+                    (newVideo.ca_level === "Foundation" && !newVideo.subject)
+                  }
+                >
+                  Add YouTube Video
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -328,34 +370,36 @@ const Resources = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredDocuments.map((document) => (
-                <Card key={document.id} className="overflow-hidden">
-                  <div className="aspect-video relative bg-muted flex items-center justify-center">
-                    <img 
-                      src={document.thumbnailUrl} 
-                      alt={document.title}
-                      className="object-cover h-40 w-full"
-                    />
-                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                      <Button variant="secondary">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
-                      </Button>
+              {filteredDocuments.map((document, i) => (
+                <ScrollReveal delay={0.1 + i * 0.05}>
+                  <Card key={document.id} className="overflow-hidden">
+                    <div className="aspect-video relative bg-muted flex items-center justify-center">
+                      <img 
+                        src={document.thumbnailUrl} 
+                        alt={document.title}
+                        className="object-cover h-40 w-full"
+                      />
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <Button variant="secondary">
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  <CardHeader className="py-4">
-                    <CardTitle className="text-lg">{document.title}</CardTitle>
-                    <CardDescription>{document.category}</CardDescription>
-                  </CardHeader>
-                  <CardFooter className="flex justify-between py-3">
-                    <span className="text-sm text-muted-foreground">
-                      {document.type} • {document.size}
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      {document.uploadDate}
-                    </span>
-                  </CardFooter>
-                </Card>
+                    <CardHeader className="py-4">
+                      <CardTitle className="text-lg">{document.title}</CardTitle>
+                      <CardDescription>{document.category}</CardDescription>
+                    </CardHeader>
+                    <CardFooter className="flex justify-between py-3">
+                      <span className="text-sm text-muted-foreground">
+                        {document.type} • {document.size}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {document.uploadDate}
+                      </span>
+                    </CardFooter>
+                  </Card>
+                </ScrollReveal>
               ))}
             </div>
           )}
@@ -374,37 +418,47 @@ const Resources = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredVideos.map((video) => (
-                <Card key={video.id} className="overflow-hidden">
-                  <div className="aspect-video relative bg-muted flex items-center justify-center">
-                    <img 
-                      src={video.thumbnailUrl} 
-                      alt={video.title}
-                      className="object-cover w-full"
-                    />
-                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                      <Button variant="secondary" asChild>
-                        <a href={video.url} target="_blank" rel="noopener noreferrer">
-                          <Youtube className="h-4 w-4 mr-2" />
-                          Watch
-                        </a>
-                      </Button>
-                    </div>
-                  </div>
-                  <CardHeader className="py-4">
-                    <CardTitle className="text-lg">{video.title}</CardTitle>
-                    <CardDescription>{video.category}</CardDescription>
-                  </CardHeader>
-                  <CardFooter className="flex justify-between py-3">
-                    <span className="text-sm text-muted-foreground">
-                      Duration: {video.duration}
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      {video.uploadDate}
-                    </span>
-                  </CardFooter>
-                </Card>
-              ))}
+              {filteredVideos.map((video, i) => {
+                const ytId = getYouTubeId(video.url);
+                return (
+                  <ScrollReveal delay={0.1 + i * 0.05} key={video.id}>
+                    <Card className="overflow-hidden">
+                      <div className="aspect-video relative bg-muted flex items-center justify-center">
+                        {ytId ? (
+                          <iframe
+                            width="100%"
+                            height="220"
+                            src={`https://www.youtube.com/embed/${ytId}`}
+                            title={video.title}
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="w-full h-56"
+                          />
+                        ) : (
+                          <img
+                            src={video.thumbnailUrl}
+                            alt={video.title}
+                            className="object-cover w-full"
+                          />
+                        )}
+                      </div>
+                      <CardHeader className="py-4">
+                        <CardTitle className="text-lg">{video.title}</CardTitle>
+                        <CardDescription>{video.category}</CardDescription>
+                      </CardHeader>
+                      <CardFooter className="flex justify-between py-3">
+                        <span className="text-sm text-muted-foreground">
+                          Duration: {video.duration}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {video.uploadDate}
+                        </span>
+                      </CardFooter>
+                    </Card>
+                  </ScrollReveal>
+                );
+              })}
             </div>
           )}
         </TabsContent>
