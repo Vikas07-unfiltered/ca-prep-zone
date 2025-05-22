@@ -79,6 +79,21 @@ const Resources = () => {
     fetchProfile();
   }, []);
 
+  useEffect(() => {
+    const fetchVideos = async () => {
+      const { data, error } = await (supabase as any)
+        .from('videos')
+        .select('*');
+      if (!error && data) {
+        setResources((prev) => ({
+          ...prev,
+          videos: data
+        }));
+      }
+    };
+    fetchVideos();
+  }, []);
+
   const filteredDocuments = resources.documents.filter(doc =>
     (selectedLevel === "All" || doc.ca_level === selectedLevel) &&
     (selectedCategory === "All" || doc.category === selectedCategory) &&
@@ -134,8 +149,8 @@ const Resources = () => {
     });
   };
 
-  const handleVideoAdd = () => {
-    if (!newVideo.title || !newVideo.url) {
+  const handleVideoAdd = async () => {
+    if (!newVideo.title || !getYouTubeId(newVideo.url) || !newVideo.ca_level || (newVideo.ca_level === "Foundation" && !newVideo.subject)) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -143,29 +158,46 @@ const Resources = () => {
       });
       return;
     }
-    
-    const newVid = {
-      id: `vid-${Date.now()}`,
+
+    // Prepare the video object
+    const videoToInsert = {
       title: newVideo.title,
-      duration: newVideo.duration || "00:00",
-      uploadDate: new Date().toISOString().split('T')[0],
       url: newVideo.url,
-      thumbnailUrl: "/placeholder.svg",
-      ca_level: newVideo.ca_level
+      duration: newVideo.duration || "00:00",
+      ca_level: newVideo.ca_level,
+      subject: newVideo.ca_level === "Foundation" ? newVideo.subject : null,
+      uploadDate: new Date().toISOString().split('T')[0],
+      thumbnailUrl: "/placeholder.svg"
     };
-    
-    setResources({
-      ...resources,
-      videos: [...resources.videos, newVid]
-    });
-    
+
+    // Insert into Supabase
+    const { data, error } = await (supabase as any)
+      .from('videos')
+      .insert([videoToInsert])
+      .select();
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Optionally, update local state to show the new video immediately
+    setResources((prev) => ({
+      ...prev,
+      videos: [...prev.videos, ...(data || [])]
+    }));
+
     setIsAddingVideo(false);
-    
+
     toast({
       title: "Video Added",
       description: `"${newVideo.title}" has been added to resources`,
     });
-    
+
     // Reset form
     setNewVideo({
       title: "",
