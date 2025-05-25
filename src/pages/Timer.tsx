@@ -10,7 +10,11 @@ import { Pencil, Check, X } from "lucide-react";
 import { Doodle } from "@/components/ui/Doodle";
 import { ScrollReveal } from "@/components/ScrollReveal";
 
-const Timer = () => {
+interface TimerProps {
+  onPomodoroComplete?: () => void;
+}
+
+const Timer: React.FC<TimerProps> = ({ onPomodoroComplete }) => {
   const { toast } = useToast();
   const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
   const [isActive, setIsActive] = useState(false);
@@ -38,6 +42,10 @@ const Timer = () => {
               title: "Timer Completed",
               description: `Your ${currentMode} session is complete!`,
             });
+            // Call onPomodoroComplete if focus session completed
+            if (currentMode === "focus" && typeof onPomodoroComplete === "function") {
+              onPomodoroComplete();
+            }
             return 0;
           }
           return prevTime - 1;

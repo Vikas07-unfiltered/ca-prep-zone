@@ -39,14 +39,7 @@ const Tools = () => {
       color: "bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700",
       iconColor: "text-purple-500"
     },
-    {
-      title: "Study Resources",
-      description: "Access helpful resources for your CA preparation",
-      icon: BookOpen,
-      path: "/resources",
-      color: "bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700",
-      iconColor: "text-amber-500"
-    }
+
   ];
 
   const filteredTools = tools;
@@ -91,9 +84,11 @@ const Tools = () => {
                 <Card className="h-full border border-border/40 transition-all duration-200 hover:border-border hover:shadow-md">
                   <CardHeader className="pb-2">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-md bg-gray-100 dark:bg-gray-700">
-                        <tool.icon size={20} className={tool.iconColor} />
-                      </div>
+                      {tool.icon ? (
+                        <div className="p-2 rounded-md bg-gray-100 dark:bg-gray-700">
+                          <tool.icon size={20} className={tool.iconColor} />
+                        </div>
+                      ) : null}
                       <CardTitle className="text-xl">{tool.title}</CardTitle>
                     </div>
                   </CardHeader>

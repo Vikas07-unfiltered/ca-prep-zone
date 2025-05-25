@@ -1,0 +1,11 @@
+<svg width="220" height="60" viewBox="0 0 220 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="2" y="2" width="216" height="56" rx="12" fill="#fff" stroke="#111" stroke-width="3"/>
+  <g font-family="'Segoe UI', Arial, sans-serif" font-weight="bold" text-anchor="middle">
+    <text x="110" y="35" font-size="28" fill="#111">Unfiltered CA</text>
+  </g>
+  <!-- Open book icon (minimalist) -->
+  <g>
+    <path d="M35 45 Q40 35 55 45 Q70 55 85 45" stroke="#111" stroke-width="2" fill="none"/>
+    <path d="M35 45 Q40 55 55 45 Q70 35 85 45" stroke="#111" stroke-width="2" fill="none"/>
+  </g>
+</svg>

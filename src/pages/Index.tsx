@@ -5,6 +5,7 @@ import { AnimatedContainer, AnimatedList } from "@/components/ui/animated-contai
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { Doodle } from "@/components/ui/Doodle";
 import { ScrollReveal } from "@/components/ScrollReveal";
+import { cn } from "@/lib/utils";
 
 const Index = () => {
   const { user } = useAuth();
@@ -14,8 +15,24 @@ const Index = () => {
       {/* Hero Section */}
       <ScrollReveal>
         <section className="py-20 md:py-24 bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-background">
-          <div className="container px-4 md:px-6">
-            <AnimatedContainer className="flex flex-col items-center space-y-4 text-center">
+          <div className="container px-4 md:px-6 relative">
+            {/* Doodles */}
+            <Doodle 
+              name="balance-sheet" 
+              className={cn(
+                "absolute -left-4 top-1/4 w-24 h-24 text-blue-200 -rotate-12",
+                "hidden md:block"
+              )} 
+            />
+            <Doodle 
+              name="finance" 
+              className={cn(
+                "absolute -right-4 top-1/3 w-20 h-20 text-blue-100 rotate-12",
+                "hidden md:block"
+              )} 
+            />
+            
+            <AnimatedContainer className="flex flex-col items-center space-y-4 text-center relative z-10">
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">
                   Master Your CA Studies with Unfiltered CA

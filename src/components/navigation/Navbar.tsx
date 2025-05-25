@@ -55,9 +55,9 @@ const Navbar = () => {
                 </Link>
               </motion.div>
               <motion.div whileHover={{ y: -2 }}>
-                <Link to="/resources" className="text-muted-foreground hover:text-foreground flex items-center gap-1">
+                <Link to="/preparation" className="text-muted-foreground hover:text-foreground flex items-center gap-1">
                   <BookOpen className="h-4 w-4" />
-                  <span>Resources</span>
+                  <span>Preparation</span>
                 </Link>
               </motion.div>
             </>
@@ -142,7 +142,6 @@ const Navbar = () => {
                   Home
                 </Link>
               </motion.div>
-              
               {user && (
                 <>
                   <motion.div whileHover={{ x: 5 }}>
@@ -152,10 +151,10 @@ const Navbar = () => {
                     </Link>
                   </motion.div>
                   <motion.div whileHover={{ x: 5 }}>
-                    <Link to="/resources" className="flex items-center gap-2 p-2 rounded-md hover:bg-accent" onClick={() => setIsMenuOpen(false)}>
-                      <BookOpen className="h-5 w-5 text-primary" />
-                      <span>Resources</span>
-                    </Link>
+                    <Link to="/preparation" className="flex items-center gap-2 p-2 rounded-md hover:bg-accent" onClick={() => setIsMenuOpen(false)}>
+  <BookOpen className="h-5 w-5 text-primary" />
+  <span>Preparation</span>
+</Link>
                   </motion.div>
                 </>
               )}

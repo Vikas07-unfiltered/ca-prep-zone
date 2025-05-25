@@ -28,25 +28,6 @@ async function generateUniqueRoomCode(): Promise<number> {
   return code!;
 }
 
-export async function createDailyRoom(): Promise<string> {
-  const res = await fetch('https://api.daily.co/v1/rooms', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer e11f71845384070a1844eca02fd2f039bb8828d803f4d10879f7f274ceb7ee0b'
-    },
-    body: JSON.stringify({
-      properties: {
-        enable_chat: true,
-        enable_screenshare: true,
-        start_video_off: true,
-        start_audio_off: false
-      }
-    })
-  });
-  const data = await res.json();
-  return data.url;
-}
 
 export const StudyRoomService = {
   async getAll(): Promise<StudyRoom[]> {

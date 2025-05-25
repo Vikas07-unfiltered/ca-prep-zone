@@ -6,13 +6,14 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { BookOpen, Users, Video, Mic, MessageCircle } from "lucide-react";
+import { BookOpen, Users, MessageCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { StudyRoomService, createDailyRoom, StudyRoom } from "@/services/StudyRoomService";
+import { StudyRoomService, StudyRoom } from "@/services/StudyRoomService";
+
 import { supabase } from "@/integrations/supabase/client";
-import DailyIframe from '@daily-co/daily-js';
+
 import { motion } from "framer-motion";
 import { ScrollReveal } from "@/components/ScrollReveal";
 
@@ -20,8 +21,6 @@ import { ScrollReveal } from "@/components/ScrollReveal";
 const initialStudyRooms = [];
 const initialMessages = [];
 
-// Global singleton for DailyIframe call frame
-let globalCallFrame: any = null;
 
 const StudyRooms = () => {
   const { toast } = useToast();
@@ -39,7 +38,6 @@ const StudyRooms = () => {
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [creatorName, setCreatorName] = useState<string>("");
-  const [isStartingVoice, setIsStartingVoice] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState("All");
 
   // Place activeRoomData here so it's available for useEffect
@@ -197,72 +195,6 @@ const StudyRooms = () => {
   };
 
   console.log('activeRoomData:', activeRoomData);
-
-  function VoiceChat({ roomUrl }: { roomUrl: string }) {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const callFrameRef = useRef<any>(null);
-
-    useEffect(() => {
-      const cleanup = () => {
-        if (callFrameRef.current) {
-          try {
-            callFrameRef.current.destroy();
-          } catch (e) {
-            console.error('Error destroying call frame:', e);
-          }
-          callFrameRef.current = null;
-        }
-        if (containerRef.current) {
-          while (containerRef.current.firstChild) {
-            containerRef.current.removeChild(containerRef.current.firstChild);
-          }
-        }
-      };
-
-      cleanup();
-
-      if (!roomUrl || !containerRef.current) return;
-
-      try {
-        callFrameRef.current = DailyIframe.createFrame({
-          iframeStyle: {
-            position: "relative",
-            width: "100%",
-            height: "400px",
-            border: "1px solid #ccc",
-          },
-        });
-        callFrameRef.current.join({ url: roomUrl });
-        containerRef.current.appendChild(callFrameRef.current.iframe());
-      } catch (e) {
-        console.error('Error creating call frame:', e);
-        cleanup();
-      }
-
-      return cleanup;
-    }, [roomUrl]);
-
-    return <div ref={containerRef} />;
-  }
-
-  const handleStartVoiceChat = async () => {
-    if (!activeRoomData) return;
-    setIsStartingVoice(true);
-    try {
-      console.log('Starting voice chat...');
-      const url = await createDailyRoom();
-      console.log('Daily.co room URL:', url);
-      await StudyRoomService.updateRoom(activeRoomData.id!, { daily_room_url: url });
-      console.log('Room updated in Supabase');
-      const updatedRooms = await StudyRoomService.getAll();
-      setStudyRooms(updatedRooms);
-      toast({ title: "Voice Chat Started", description: "Voice chat is now available for this room." });
-    } catch (e) {
-      console.error('Failed to start voice chat:', e);
-      toast({ title: "Error", description: "Failed to start voice chat.", variant: "destructive" });
-    }
-    setIsStartingVoice(false);
-  };
 
   const filteredRooms = studyRooms.filter(room =>
     selectedLevel === "All" || room.ca_level === selectedLevel
@@ -456,18 +388,6 @@ const StudyRooms = () => {
                   
                   <div className="flex items-start gap-3">
                     <div className="bg-primary/10 p-2 rounded-full">
-                      <Mic className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Voice Communication</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Discuss concepts verbally for better understanding
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <div className="bg-primary/10 p-2 rounded-full">
                       <BookOpen className="h-5 w-5 text-primary" />
                     </div>
                     <div>
@@ -546,10 +466,6 @@ const StudyRooms = () => {
                           <MessageCircle className="h-4 w-4 mr-2" />
                           Chat
                         </TabsTrigger>
-                        <TabsTrigger value="voice">
-                          <Mic className="h-4 w-4 mr-2" />
-                          Voice
-                        </TabsTrigger>
                         <TabsTrigger value="participants">
                           <Users className="h-4 w-4 mr-2" />
                           Participants
@@ -622,25 +538,6 @@ const StudyRooms = () => {
                                 <Button type="submit">Send</Button>
                               </form>
                             </div>
-                          </Card>
-                        </TabsContent>
-                      </motion.div>
-                      
-                      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                        <TabsContent value="voice">
-                          <Card className="border">
-                            <CardContent>
-                              {!activeRoomData?.daily_room_url || activeRoomData.daily_room_url === "null" ? (
-                                <div className="flex flex-col items-center gap-4">
-                                  <p>No voice room available.</p>
-                                  <Button onClick={handleStartVoiceChat} disabled={isStartingVoice}>
-                                    {isStartingVoice ? "Starting..." : "Start Voice Chat"}
-                                  </Button>
-                                </div>
-                              ) : (
-                                <VoiceChat key={activeRoomData.daily_room_url} roomUrl={activeRoomData.daily_room_url} />
-                              )}
-                            </CardContent>
                           </Card>
                         </TabsContent>
                       </motion.div>
