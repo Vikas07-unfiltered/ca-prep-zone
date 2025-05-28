@@ -10,6 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { supabase } from "@/integrations/supabase/client"; // adjust path if needed
+import type { Database } from "@/integrations/supabase/types";
+
+type NoteRow = Database["public"]["Tables"]["resources_notes"]["Row"];
+type NoteInsert = Database["public"]["Tables"]["resources_notes"]["Insert"];
+type PptRow = Database["public"]["Tables"]["resources_ppts"]["Row"];
+type PptInsert = Database["public"]["Tables"]["resources_ppts"]["Insert"];
 
 // Empty initial resources
 const initialResources = {
@@ -36,6 +42,21 @@ function getYouTubeId(url: string) {
 }
 
 const Resources = () => {
+  // State for Notes links
+  // Notes from Supabase, grouped by title
+  const [noteGroups, setNoteGroups] = useState<Record<string, { id: string; teacher: string; url: string }[]>>({});
+  const [newNoteTitle, setNewNoteTitle] = useState("");
+  const [newNoteUrl, setNewNoteUrl] = useState("");
+  const [newNoteTeacher, setNewNoteTeacher] = useState("");
+  const [loadingNotes, setLoadingNotes] = useState(false);
+
+  // PPTs from Supabase, grouped by title
+  const [pptGroups, setPptGroups] = useState<Record<string, { id: string; teacher: string; url: string }[]>>({});
+  const [newPptTitle, setNewPptTitle] = useState("");
+  const [newPptUrl, setNewPptUrl] = useState("");
+  const [newPptTeacher, setNewPptTeacher] = useState("");
+  const [loadingPpts, setLoadingPpts] = useState(false);
+
   const { toast } = useToast();
   const [resources, setResources] = useState(initialResources);
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -57,6 +78,65 @@ const Resources = () => {
   });
   const [selectedLevel, setSelectedLevel] = useState("All");
 
+  // Handlers for adding links
+  const handleAddNoteLink = async () => {
+    if (!newNoteTitle.trim() || !newNoteUrl.trim() || !newNoteTeacher.trim()) return;
+    setLoadingNotes(true);
+    const { data, error } = await supabase
+      .from('resources_notes')
+      .insert([{ title: newNoteTitle, teacher: newNoteTeacher, url: newNoteUrl }])
+      .select();
+    setLoadingNotes(false);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return;
+    }
+    if (data && data.length > 0) {
+      // Insert the new note into the correct group
+      setNoteGroups(prev => {
+        const group = prev[newNoteTitle] ? [...prev[newNoteTitle]] : [];
+        const note = data[0];
+        if (note && typeof note === 'object' && 'id' in note) {
+          group.push({ id: (note as NoteRow).id, teacher: newNoteTeacher, url: newNoteUrl });
+        }
+        return { ...prev, [newNoteTitle]: group };
+      });
+    }
+    setNewNoteTitle("");
+    setNewNoteUrl("");
+    setNewNoteTeacher("");
+    toast({ title: 'Note Added', description: 'Note added successfully!' });
+  };
+
+  const handleAddPptLink = async () => {
+    if (!newPptTitle.trim() || !newPptUrl.trim() || !newPptTeacher.trim()) return;
+    setLoadingPpts(true);
+    const { data, error } = await supabase
+      .from('resources_ppts')
+      .insert([{ title: newPptTitle, teacher: newPptTeacher, url: newPptUrl }])
+      .select();
+    setLoadingPpts(false);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return;
+    }
+    if (data && data.length > 0) {
+      setPptGroups(prev => {
+        const group = prev[newPptTitle] ? [...prev[newPptTitle]] : [];
+        const ppt = data[0];
+        if (ppt && typeof ppt === 'object' && 'id' in ppt) {
+          group.push({ id: (ppt as PptRow).id, teacher: newPptTeacher, url: newPptUrl });
+        }
+        return { ...prev, [newPptTitle]: group };
+      });
+    }
+    setNewPptTitle("");
+    setNewPptUrl("");
+    setNewPptTeacher("");
+    toast({ title: 'PPT Added', description: 'PPT added successfully!' });
+  };
+
+  // Fetch notes and PPTs from Supabase
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -76,7 +156,44 @@ const Resources = () => {
         }
       }
     };
+
+    const fetchNotes = async () => {
+      setLoadingNotes(true);
+      const { data, error } = await supabase
+        .from('resources_notes')
+        .select('*');
+      setLoadingNotes(false);
+      if (!error && data) {
+        // Group notes by title
+        const grouped: Record<string, { id: string; teacher: string; url: string }[]> = {};
+        data.forEach((note: any) => {
+          if (!grouped[note.title]) grouped[note.title] = [];
+          grouped[note.title].push({ id: note.id, teacher: note.teacher, url: note.url });
+        });
+        setNoteGroups(grouped);
+      }
+    };
+
+    const fetchPpts = async () => {
+      setLoadingPpts(true);
+      const { data, error } = await supabase
+        .from('resources_ppts')
+        .select('*');
+      setLoadingPpts(false);
+      if (!error && data) {
+        // Group ppts by title
+        const grouped: Record<string, { id: string; teacher: string; url: string }[]> = {};
+        data.forEach((ppt: any) => {
+          if (!grouped[ppt.title]) grouped[ppt.title] = [];
+          grouped[ppt.title].push({ id: ppt.id, teacher: ppt.teacher, url: ppt.url });
+        });
+        setPptGroups(grouped);
+      }
+    };
+
     fetchProfile();
+    fetchNotes();
+    fetchPpts();
   }, []);
 
   useEffect(() => {
@@ -377,126 +494,227 @@ const Resources = () => {
         </div>
       )}
       
-      <Tabs defaultValue="documents">
+      <Tabs defaultValue="notes" className="mt-8">
         <TabsList className="mb-6">
-          <TabsTrigger value="documents">
-            <BookOpen className="h-4 w-4 mr-2" />
-            Documents
-          </TabsTrigger>
-          <TabsTrigger value="videos">
-            <Youtube className="h-4 w-4 mr-2" />
-            Videos
-          </TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
+          <TabsTrigger value="ppts">PPTs</TabsTrigger>
+          <TabsTrigger value="youtube">YouTube</TabsTrigger>
+          <TabsTrigger value="fun-games">Fun Games</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="documents">
-          {filteredDocuments.length === 0 ? (
-            <div className="text-center py-12">
-              <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">No documents found</h3>
-              <p className="text-muted-foreground">
-                {searchQuery
-                  ? `No results for "${searchQuery}"`
-                  : "No documents available. Add your first document!"}
-              </p>
+        <TabsContent value="notes">
+        {/* Notes Tab: List of note links */}
+        <div className="text-center py-12">
+          <h3 className="text-lg font-medium mb-4">Notes</h3>
+          {isAdmin && (
+            <div className="flex flex-col items-start w-full">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button className="mb-4">Add Note Link</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Note Link</DialogTitle>
+                    <DialogDescription>Enter the title, teacher, and URL for the note.</DialogDescription>
+                  </DialogHeader>
+                  <Input
+                    placeholder="Title"
+                    value={newNoteTitle}
+                    onChange={e => setNewNoteTitle(e.target.value)}
+                    className="mb-2"
+                  />
+                  <Input
+                    placeholder="URL"
+                    value={newNoteUrl}
+                    onChange={e => setNewNoteUrl(e.target.value)}
+                    className="mb-2"
+                  />
+                  <Input
+                    placeholder="Teacher"
+                    value={newNoteTeacher}
+                    onChange={e => setNewNoteTeacher(e.target.value)}
+                    className="mb-2"
+                  />
+                  <DialogFooter>
+                    <Button onClick={handleAddNoteLink} disabled={loadingNotes}>Add</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredDocuments.map((document, i) => (
-                <ScrollReveal delay={0.1 + i * 0.05}>
-                  <Card key={document.id} className="overflow-hidden">
+          )}
+          <div className="flex flex-col gap-6 w-full mt-4">
+            {Object.entries(noteGroups).map(([title, notes], idx) => (
+              <div key={title} className="rounded-lg border bg-card text-card-foreground shadow p-5 w-full">
+                <div className="flex items-center mb-3">
+                  <span className="text-lg font-semibold text-primary mr-2">{idx + 1}.</span>
+                  <span className="text-lg font-semibold text-primary">{title}</span>
+                </div>
+                <ul className="ml-6 space-y-2">
+                  {notes.map((note, subIdx) => (
+                    <li key={subIdx} className="flex items-center gap-2">
+                      <span className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground font-semibold mr-2">
+                        {String.fromCharCode(97 + subIdx)}
+                      </span>
+                      <span className="flex items-center gap-1 text-sm">
+                        <span className="inline-flex items-center gap-1 text-gray-700 font-medium">
+                          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" className="inline-block align-middle text-blue-500" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5Z"/></svg>
+                          {note.teacher}
+                        </span>
+                        <span className="text-gray-400 mx-1">—</span>
+                        <a href={note.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all inline-flex items-center gap-1">
+                          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" className="inline-block align-middle text-blue-400" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 1 7 7l-1 1a5 5 0 0 1-7-7"/><path d="M8 11a5 5 0 0 1 7-7l1 1a5 5 0 0 1-7 7"/><line x1="8" x2="16" y1="8" y2="16"/></svg>
+                          {note.url}
+                        </a>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </TabsContent>
+      <TabsContent value="ppts">
+        {/* PPTs Tab: List of PPT links */}
+        <div className="text-center py-12">
+          <h3 className="text-lg font-medium mb-4">PPTs</h3>
+          {isAdmin && (
+            <div className="flex flex-col items-start w-full">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button className="mb-4">Add PPT Link</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add PPT Link</DialogTitle>
+                    <DialogDescription>Enter the title, teacher, and URL for the PPT.</DialogDescription>
+                  </DialogHeader>
+                  <Input
+                    placeholder="Title"
+                    value={newPptTitle}
+                    onChange={e => setNewPptTitle(e.target.value)}
+                    className="mb-2"
+                  />
+                  <Input
+                    placeholder="URL"
+                    value={newPptUrl}
+                    onChange={e => setNewPptUrl(e.target.value)}
+                    className="mb-2"
+                  />
+                  <Input
+                    placeholder="Teacher"
+                    value={newPptTeacher}
+                    onChange={e => setNewPptTeacher(e.target.value)}
+                    className="mb-2"
+                  />
+                  <DialogFooter>
+                    <Button onClick={handleAddPptLink} disabled={loadingPpts}>Add</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          )}
+          <div className="flex flex-col gap-6 w-full mt-4">
+            {Object.entries(pptGroups).map(([title, ppts], idx) => (
+              <div key={title} className="rounded-lg border bg-card text-card-foreground shadow p-5 w-full">
+                <div className="flex items-center mb-3">
+                  <span className="text-lg font-semibold text-primary mr-2">{idx + 1}.</span>
+                  <span className="text-lg font-semibold text-primary">{title}</span>
+                </div>
+                <ul className="ml-6 space-y-2">
+                  {ppts.map((ppt, subIdx) => (
+                    <li key={subIdx} className="flex items-center gap-2">
+                      <span className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground font-semibold mr-2">
+                        {String.fromCharCode(97 + subIdx)}
+                      </span>
+                      <span className="flex items-center gap-1 text-sm">
+                        <span className="inline-flex items-center gap-1 text-gray-700 font-medium">
+                          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" className="inline-block align-middle text-blue-500" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5Z"/></svg>
+                          {ppt.teacher}
+                        </span>
+                        <span className="text-gray-400 mx-1">—</span>
+                        <a href={ppt.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all inline-flex items-center gap-1">
+                          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" className="inline-block align-middle text-blue-400" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 1 7 7l-1 1a5 5 0 0 1-7-7"/><path d="M8 11a5 5 0 0 1 7-7l1 1a5 5 0 0 1-7 7"/><line x1="8" x2="16" y1="8" y2="16"/></svg>
+                          {ppt.url}
+                        </a>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </TabsContent>
+      <TabsContent value="youtube">
+        {/* YouTube Tab: Show YouTube videos */}
+        {filteredVideos.length === 0 ? (
+          <div className="text-center py-12">
+            <Youtube className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium">No YouTube videos found</h3>
+            <p className="text-muted-foreground">
+              {searchQuery
+                ? `No results for "${searchQuery}"`
+                : "No YouTube videos available. Add your first video!"}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredVideos.map((video, i) => {
+              const ytId = getYouTubeId(video.url);
+              return (
+                <ScrollReveal delay={0.1 + i * 0.05} key={video.id}>
+                  <Card className="overflow-hidden">
                     <div className="aspect-video relative bg-muted flex items-center justify-center">
-                      <img 
-                        src={document.thumbnailUrl} 
-                        alt={document.title}
-                        className="object-cover h-40 w-full"
-                      />
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                        <Button variant="secondary">
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </Button>
-                      </div>
+                      {ytId ? (
+                        <iframe
+                          width="100%"
+                          height="220"
+                          src={`https://www.youtube.com/embed/${ytId}`}
+                          title={video.title}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-56"
+                        />
+                      ) : (
+                        <img
+                          src={video.thumbnailUrl}
+                          alt={video.title}
+                          className="object-cover w-full"
+                        />
+                      )}
                     </div>
                     <CardHeader className="py-4">
-                      <CardTitle className="text-lg">{document.title}</CardTitle>
-                      <CardDescription>{document.category}</CardDescription>
+                      <CardTitle className="text-lg">{video.title}</CardTitle>
+                      <CardDescription>{video.category}</CardDescription>
                     </CardHeader>
                     <CardFooter className="flex justify-between py-3">
                       <span className="text-sm text-muted-foreground">
-                        {document.type} • {document.size}
+                        Duration: {video.duration}
                       </span>
                       <span className="text-sm text-muted-foreground">
-                        {document.uploadDate}
+                        {video.uploadDate}
                       </span>
                     </CardFooter>
                   </Card>
                 </ScrollReveal>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="videos">
-          {filteredVideos.length === 0 ? (
-            <div className="text-center py-12">
-              <Youtube className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">No videos found</h3>
-              <p className="text-muted-foreground">
-                {searchQuery
-                  ? `No results for "${searchQuery}"`
-                  : "No videos available. Add your first video!"}
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredVideos.map((video, i) => {
-                const ytId = getYouTubeId(video.url);
-                return (
-                  <ScrollReveal delay={0.1 + i * 0.05} key={video.id}>
-                    <Card className="overflow-hidden">
-                      <div className="aspect-video relative bg-muted flex items-center justify-center">
-                        {ytId ? (
-                          <iframe
-                            width="100%"
-                            height="220"
-                            src={`https://www.youtube.com/embed/${ytId}`}
-                            title={video.title}
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            className="w-full h-56"
-                          />
-                        ) : (
-                          <img
-                            src={video.thumbnailUrl}
-                            alt={video.title}
-                            className="object-cover w-full"
-                          />
-                        )}
-                      </div>
-                      <CardHeader className="py-4">
-                        <CardTitle className="text-lg">{video.title}</CardTitle>
-                        <CardDescription>{video.category}</CardDescription>
-                      </CardHeader>
-                      <CardFooter className="flex justify-between py-3">
-                        <span className="text-sm text-muted-foreground">
-                          Duration: {video.duration}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {video.uploadDate}
-                        </span>
-                      </CardFooter>
-                    </Card>
-                  </ScrollReveal>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-};
-
+              );
+            })}
+          </div>
+        )}
+      </TabsContent>
+      <TabsContent value="fun-games">
+        {/* Fun Games Tab: List of fun/educational games */}
+        <div className="text-center py-12">
+          <h3 className="text-lg font-medium mb-4">Fun Games</h3>
+          <ul className="space-y-3 max-w-xl mx-auto">
+            {/* Add your fun/educational game links here */}
+          </ul>
+        </div>
+      </TabsContent>
+    </Tabs>
+  </div>
+);
+}
 export default Resources;

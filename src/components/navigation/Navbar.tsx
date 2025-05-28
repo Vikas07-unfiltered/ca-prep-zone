@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { User, LogOut, Menu, X, LayoutDashboard, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedButton } from '@/components/ui/animated-button';
+import Logo from '@/components/ui/Logo.svg?react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
@@ -31,9 +32,9 @@ const Navbar = () => {
           <Link to="/" className="flex items-center gap-2 text-xl font-bold text-primary">
             <motion.div
               whileHover={{ rotate: 5 }}
-              className="w-8 h-8 rounded-md bg-primary flex items-center justify-center"
+              className="w-10 h-10 flex items-center justify-center"
             >
-              <span className="text-sm font-bold text-stone-500">UC</span>
+              <Logo className="w-full h-full" />
             </motion.div>
             <span>Unfiltered CA</span>
           </Link>

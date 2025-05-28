@@ -15,6 +15,7 @@ export interface StudyRoom {
   created_at?: string;
   room_code?: number;
   daily_room_url?: string;
+  voice_enabled?: boolean;
 }
 
 async function generateUniqueRoomCode(): Promise<number> {
@@ -38,7 +39,7 @@ export const StudyRoomService = {
     return data;
   },
 
-  async create(room: Omit<StudyRoom, 'id' | 'created_at' | 'room_code' | 'daily_room_url'>): Promise<StudyRoom> {
+  async create(room: Omit<StudyRoom, 'id' | 'created_at' | 'room_code'>): Promise<StudyRoom> {
     const room_code = await generateUniqueRoomCode();
     const { data, error } = await (supabaseClient as any).from('study_rooms')
       .insert({ ...room, room_code })

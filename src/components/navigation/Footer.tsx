@@ -113,11 +113,11 @@ const Footer = () => {
             <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="text-muted-foreground hover:text-foreground transition-colors"><path d="M21 3L3.5 10.5c-.7.3-.7 1.3 0 1.6l4.3 1.4 1.4 4.3c.3.7 1.3.7 1.6 0L21 3z"/><path d="M8.5 15.5l2.5 2.5c.4.4 1.1.2 1.2-.4l.7-3.2"/></svg>
           </a>
           {/* X (Twitter) */}
-          <a href="#" target="_blank" rel="noopener noreferrer" aria-label="X">
+          <a href="https://x.com/CA_unfiltered" target="_blank" rel="noopener noreferrer" aria-label="X">
             <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="text-muted-foreground hover:text-foreground transition-colors"><path d="M17.5 6.5l-11 11"/><path d="M6.5 6.5l11 11"/></svg>
           </a>
           {/* YouTube */}
-          <a href="#" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
+          <a href="https://youtube.com/@unfiltered-ca07?si=X8Od_FglcVQ4BdVx" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
             <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="text-muted-foreground hover:text-foreground transition-colors"><rect x="3" y="6" width="18" height="12" rx="4"/><path d="M10 9.5v5l5-2.5-5-2.5z"/></svg>
           </a>
         </div>

@@ -14,8 +14,11 @@ const Preparation = () => {
           <h2 className="text-xl font-semibold mb-2">MCQ</h2>
           <p className="text-muted-foreground">Practice Multiple Choice Questions for your CA exams.</p>
         </Link>
-        <Link to="/test" className="block p-6 border border-border/40 rounded-lg shadow hover:shadow-md hover:border-border transition-all">
-          <h2 className="text-xl font-semibold mb-2">Test</h2>
+        <Link to="/test" className="block p-6 border border-border/40 rounded-lg shadow hover:shadow-md hover:border-border transition-all opacity-60 pointer-events-none select-none">
+          <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
+            Test
+            <span className="bg-yellow-200 text-yellow-800 text-xs font-bold px-2 py-0.5 rounded-full">Coming Soon</span>
+          </h2>
           <p className="text-muted-foreground">Take full-length or topic-wise tests to assess your readiness.</p>
         </Link>
       </div>

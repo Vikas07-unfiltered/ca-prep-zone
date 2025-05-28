@@ -65,6 +65,66 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      },
+      resources_notes: {
+        Row: {
+          id: string
+          title: string
+          teacher: string
+          url: string
+          created_at: string
+          updated_at: string
+          uploader_id?: string
+        }
+        Insert: {
+          title: string;
+          teacher: string;
+          url: string;
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          uploader_id?: string;
+        }
+        Update: {
+          id?: string
+          title?: string
+          teacher?: string
+          url?: string
+          created_at?: string
+          updated_at?: string
+          uploader_id?: string
+        }
+        Relationships: []
+      },
+      resources_ppts: {
+        Row: {
+          id: string
+          title: string
+          teacher: string
+          url: string
+          created_at: string
+          updated_at: string
+          uploader_id?: string
+        }
+        Insert: {
+          title: string;
+          teacher: string;
+          url: string;
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          uploader_id?: string;
+        }
+        Update: {
+          id?: string
+          title?: string
+          teacher?: string
+          url?: string
+          created_at?: string
+          updated_at?: string
+          uploader_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

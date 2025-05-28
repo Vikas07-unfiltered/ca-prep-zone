@@ -97,12 +97,26 @@ const StudyRooms = () => {
       return;
     }
     try {
+      // Create Daily.co room via backend API
+      let daily_room_url = null;
+      try {
+        const resp = await fetch('http://localhost:3001/api/create-daily-room', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomName: `studyroom-${Date.now()}` })
+        });
+        const data = await resp.json();
+        daily_room_url = data.url || null;
+      } catch (err) {
+        daily_room_url = null;
+      }
       const createdRoom = await StudyRoomService.create({
         name: newRoom.name,
         description: newRoom.description,
         ca_level: newRoom.ca_level,
         created_by: user.id,
         participants: [user.id],
+        daily_room_url,
       });
       setStudyRooms((prev) => [createdRoom, ...prev]);
       setIsCreatingRoom(false);
@@ -462,15 +476,21 @@ const StudyRooms = () => {
                     
                     <Tabs defaultValue="chat">
                       <TabsList className="mb-4">
-                        <TabsTrigger value="chat">
-                          <MessageCircle className="h-4 w-4 mr-2" />
-                          Chat
-                        </TabsTrigger>
-                        <TabsTrigger value="participants">
-                          <Users className="h-4 w-4 mr-2" />
-                          Participants
-                        </TabsTrigger>
-                      </TabsList>
+  <TabsTrigger value="chat">
+    <MessageCircle className="h-4 w-4 mr-2" />
+    Chat
+  </TabsTrigger>
+  <TabsTrigger value="participants">
+    <Users className="h-4 w-4 mr-2" />
+    Participants
+  </TabsTrigger>
+  {activeRoomData?.daily_room_url && (
+    <TabsTrigger value="voice">
+      <span role="img" aria-label="Voice Chat" className="h-4 w-4 mr-2">🔊</span>
+      Voice Chat
+    </TabsTrigger>
+  )}
+</TabsList>
                       
                       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
                         <TabsContent value="chat" className="space-y-4">
@@ -541,7 +561,9 @@ const StudyRooms = () => {
                           </Card>
                         </TabsContent>
                       </motion.div>
-                      
+
+
+
                       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
                         <TabsContent value="participants">
                           <Card className="border">

@@ -73,6 +73,11 @@ const getPomodoroStats = () => {
 };
 
 const Planner = () => {
+  // Always scroll to top when Planner mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // --- Dashboard Summary ---
   // (already in state/effects above)
 
@@ -95,13 +100,9 @@ const Planner = () => {
   const [weekHours, setWeekHours] = useState(0);
   const [upcomingSessions, setUpcomingSessions] = useState<StudySession[]>([]);
   const [badges, setBadges] = useState<{ id: string; name: string; description: string; icon: string; }[]>([]);
-  // Mock leaderboard data for demonstration
+  // Leaderboard: start empty or only with the logged-in user
   const [leaderboard, setLeaderboard] = useState<Array<{ username: string; streak: number; avatar: string }>>([
-    { username: "You", streak: streak, avatar: "🧑" },
-    { username: "Priya", streak: 10, avatar: "👩" },
-    { username: "Arjun", streak: 8, avatar: "👨" },
-    { username: "Simran", streak: 6, avatar: "👩‍🎓" },
-    { username: "Rahul", streak: 5, avatar: "👨‍🎓" }
+    { username: "You", streak: streak, avatar: "🧑" }
   ]);
 
 

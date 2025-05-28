@@ -4,7 +4,13 @@ interface PageTransitionProps {
   children: React.ReactNode;
 }
 
+import { useEffect } from "react";
+
 const PageTransition = ({ children }: PageTransitionProps) => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

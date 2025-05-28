@@ -96,7 +96,7 @@ const Index = () => {
                     Stay focused with customizable study intervals. Track subjects and analyze your study patterns.
                   </p>
                   {user ? (
-                    <Link to="/timer">
+                    <Link to="/tools/timer">
                       <AnimatedButton variant="outline" hoverScale={1.05}>Try Timer</AnimatedButton>
                     </Link>
                   ) : (
@@ -117,7 +117,7 @@ const Index = () => {
                     Plan your study schedule, set goals, and track your progress across all subjects.
                   </p>
                   {user ? (
-                    <Link to="/planner">
+                    <Link to="/tools/planner">
                       <AnimatedButton variant="outline" hoverScale={1.05}>Open Planner</AnimatedButton>
                     </Link>
                   ) : (
@@ -138,7 +138,7 @@ const Index = () => {
                     Connect with fellow CA students, share resources, and study together.
                   </p>
                   {user ? (
-                    <Link to="/groups">
+                    <Link to="/tools/rooms">
                       <AnimatedButton variant="outline" hoverScale={1.05}>Join Groups</AnimatedButton>
                     </Link>
                   ) : (
