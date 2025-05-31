@@ -16,6 +16,12 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import Profile from "./pages/auth/Profile";
 import NotFound from "./pages/NotFound";
+import Forum from "./pages/Forum";
+import ForumQuestion from "./pages/ForumQuestion";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import HelpCenter from "./pages/HelpCenter";
+import ContactUs from "./pages/ContactUs";
 import { StrictMode } from "react";
 
 // Create a client
@@ -34,11 +40,17 @@ const App = () => (
               <Route path="/tools/*" element={<MainLayout><ProtectedRoute><Tools /></ProtectedRoute></MainLayout>} />
               <Route path="/preparation" element={<MainLayout><ProtectedRoute><Preparation /></ProtectedRoute></MainLayout>} />
               <Route path="/resources" element={<MainLayout><ProtectedRoute><Resources /></ProtectedRoute></MainLayout>} />
+              <Route path="/forum" element={<MainLayout><Forum /></MainLayout>} />
+              <Route path="/forum/:id" element={<MainLayout><ForumQuestion /></MainLayout>} />
               <Route path="/mcq" element={<MainLayout><ProtectedRoute><MCQ /></ProtectedRoute></MainLayout>} />
               <Route path="/test" element={<MainLayout><ProtectedRoute><Test /></ProtectedRoute></MainLayout>} />
               <Route path="/login" element={<MainLayout><Login /></MainLayout>} />
               <Route path="/register" element={<MainLayout><Register /></MainLayout>} />
               <Route path="/profile" element={<MainLayout><ProtectedRoute><Profile /></ProtectedRoute></MainLayout>} />
+              <Route path="/help-center" element={<MainLayout><HelpCenter /></MainLayout>} />
+              <Route path="/contact-us" element={<MainLayout><ContactUs /></MainLayout>} />
+              <Route path="/privacy-policy" element={<MainLayout><PrivacyPolicy /></MainLayout>} />
+              <Route path="/terms-of-service" element={<MainLayout><TermsOfService /></MainLayout>} />
               <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
             </Routes>
           </AuthProvider>

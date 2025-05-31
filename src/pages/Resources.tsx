@@ -51,10 +51,11 @@ const Resources = () => {
   const [loadingNotes, setLoadingNotes] = useState(false);
 
   // PPTs from Supabase, grouped by title
-  const [pptGroups, setPptGroups] = useState<Record<string, { id: string; teacher: string; url: string }[]>>({});
+  const [pptGroups, setPptGroups] = useState<Record<string, { id: string; teacher: string; url: string; is_pdf: boolean }[]>>({});
   const [newPptTitle, setNewPptTitle] = useState("");
   const [newPptUrl, setNewPptUrl] = useState("");
   const [newPptTeacher, setNewPptTeacher] = useState("");
+  const [newPptFile, setNewPptFile] = useState<File | null>(null);
   const [loadingPpts, setLoadingPpts] = useState(false);
 
   const { toast } = useToast();
@@ -108,12 +109,29 @@ const Resources = () => {
     toast({ title: 'Note Added', description: 'Note added successfully!' });
   };
 
-  const handleAddPptLink = async () => {
-    if (!newPptTitle.trim() || !newPptUrl.trim() || !newPptTeacher.trim()) return;
+  const handleAddPptResource = async () => {
+    if (!newPptTitle.trim() || !newPptTeacher.trim() || (!newPptUrl.trim() && !newPptFile)) return;
     setLoadingPpts(true);
+    let resourceUrl = newPptUrl;
+    let isPdf = false;
+    // If a file is selected, upload to Supabase Storage
+    if (newPptFile) {
+      const fileExt = newPptFile.name.split('.').pop();
+      const fileName = `${Date.now()}_${newPptFile.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage.from('ppt-pdfs').upload(fileName, newPptFile, { contentType: 'application/pdf' });
+      if (uploadError) {
+        setLoadingPpts(false);
+        toast({ title: 'Upload Error', description: uploadError.message, variant: 'destructive' });
+        return;
+      }
+      // Get the public URL
+      const { data: publicUrlData } = supabase.storage.from('ppt-pdfs').getPublicUrl(fileName);
+      resourceUrl = publicUrlData?.publicUrl || '';
+      isPdf = true;
+    }
     const { data, error } = await supabase
       .from('resources_ppts')
-      .insert([{ title: newPptTitle, teacher: newPptTeacher, url: newPptUrl }])
+      .insert([{ title: newPptTitle, teacher: newPptTeacher, url: resourceUrl, is_pdf: isPdf }])
       .select();
     setLoadingPpts(false);
     if (error) {
@@ -125,7 +143,7 @@ const Resources = () => {
         const group = prev[newPptTitle] ? [...prev[newPptTitle]] : [];
         const ppt = data[0];
         if (ppt && typeof ppt === 'object' && 'id' in ppt) {
-          group.push({ id: (ppt as PptRow).id, teacher: newPptTeacher, url: newPptUrl });
+          group.push({ id: (ppt as PptRow).id, teacher: newPptTeacher, url: resourceUrl, is_pdf: isPdf });
         }
         return { ...prev, [newPptTitle]: group };
       });
@@ -133,6 +151,7 @@ const Resources = () => {
     setNewPptTitle("");
     setNewPptUrl("");
     setNewPptTeacher("");
+    setNewPptFile(null);
     toast({ title: 'PPT Added', description: 'PPT added successfully!' });
   };
 
@@ -182,10 +201,10 @@ const Resources = () => {
       setLoadingPpts(false);
       if (!error && data) {
         // Group ppts by title
-        const grouped: Record<string, { id: string; teacher: string; url: string }[]> = {};
+        const grouped: Record<string, { id: string; teacher: string; url: string; is_pdf: boolean }[]> = {};
         data.forEach((ppt: any) => {
           if (!grouped[ppt.title]) grouped[ppt.title] = [];
-          grouped[ppt.title].push({ id: ppt.id, teacher: ppt.teacher, url: ppt.url });
+          grouped[ppt.title].push({ id: ppt.id, teacher: ppt.teacher, url: ppt.url, is_pdf: ppt.is_pdf });
         });
         setPptGroups(grouped);
       }
@@ -582,12 +601,12 @@ const Resources = () => {
             <div className="flex flex-col items-start w-full">
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button className="mb-4">Add PPT Link</Button>
+                  <Button className="mb-4">Add PPT Resource</Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Add PPT Link</DialogTitle>
-                    <DialogDescription>Enter the title, teacher, and URL for the PPT.</DialogDescription>
+                    <DialogTitle>Add PPT Resource</DialogTitle>
+                    <DialogDescription>Enter the title, teacher, and URL or upload a PDF for the PPT.</DialogDescription>
                   </DialogHeader>
                   <Input
                     placeholder="Title"
@@ -607,8 +626,24 @@ const Resources = () => {
                     onChange={e => setNewPptTeacher(e.target.value)}
                     className="mb-2"
                   />
+                  <div className="mb-2 flex flex-col gap-2">
+                    <label className="font-medium">Or upload PDF</label>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={e => setNewPptFile(e.target.files?.[0] || null)}
+                    />
+                    {newPptFile && (
+                      <span className="text-xs text-green-600">Selected: {newPptFile.name}</span>
+                    )}
+                  </div>
                   <DialogFooter>
-                    <Button onClick={handleAddPptLink} disabled={loadingPpts}>Add</Button>
+                    <Button
+                      onClick={handleAddPptResource}
+                      disabled={loadingPpts || (!newPptUrl.trim() && !newPptFile) || !newPptTitle.trim() || !newPptTeacher.trim()}
+                    >
+                      Add
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -633,10 +668,17 @@ const Resources = () => {
                           {ppt.teacher}
                         </span>
                         <span className="text-gray-400 mx-1">—</span>
-                        <a href={ppt.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all inline-flex items-center gap-1">
-                          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" className="inline-block align-middle text-blue-400" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 1 7 7l-1 1a5 5 0 0 1-7-7"/><path d="M8 11a5 5 0 0 1 7-7l1 1a5 5 0 0 1-7 7"/><line x1="8" x2="16" y1="8" y2="16"/></svg>
-                          {ppt.url}
-                        </a>
+                        {ppt.is_pdf ? (
+                          <a href={ppt.url} target="_blank" rel="noopener noreferrer" className="text-green-700 underline break-all inline-flex items-center gap-1">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" className="inline-block align-middle text-green-600" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5Z"/></svg>
+                            PDF
+                          </a>
+                        ) : (
+                          <a href={ppt.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all inline-flex items-center gap-1">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" className="inline-block align-middle text-blue-400" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 1 7 7l-1 1a5 5 0 0 1-7-7"/><path d="M8 11a5 5 0 0 1 7-7l1 1a5 5 0 0 1-7 7"/><line x1="8" x2="16" y1="8" y2="16"/></svg>
+                            {ppt.url}
+                          </a>
+                        )}
                       </span>
                     </li>
                   ))}

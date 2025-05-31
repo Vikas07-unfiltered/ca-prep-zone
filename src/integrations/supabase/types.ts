@@ -125,6 +125,111 @@ export type Database = {
           uploader_id?: string
         }
         Relationships: []
+      },
+      feedback: {
+        Row: {
+          id: string;
+          name: string | null;
+          email: string | null;
+          phone: string;
+          message: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name?: string | null;
+          email?: string | null;
+          phone: string;
+          message: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string | null;
+          email?: string | null;
+          phone?: string;
+          message?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      },
+      forum_questions: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          title: string;
+          description: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          title: string;
+          description?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          title?: string;
+          description?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      },
+      forum_answers: {
+        Row: {
+          id: string;
+          question_id: string;
+          user_id: string | null;
+          answer: string;
+          is_accepted: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          question_id: string;
+          user_id?: string | null;
+          answer: string;
+          is_accepted?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          question_id?: string;
+          user_id?: string | null;
+          answer?: string;
+          is_accepted?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      },
+      forum_upvotes: {
+        Row: {
+          id: string;
+          user_id: string;
+          question_id: string | null;
+          answer_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          question_id?: string | null;
+          answer_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          question_id?: string | null;
+          answer_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
       }
     }
     Views: {

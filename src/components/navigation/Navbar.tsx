@@ -61,6 +61,11 @@ const Navbar = () => {
                   <span>Preparation</span>
                 </Link>
               </motion.div>
+              <motion.div whileHover={{ y: -2 }}>
+                <Link to="/forum" className="text-muted-foreground hover:text-foreground flex items-center gap-1">
+                  <span>Discussion Forum</span>
+                </Link>
+              </motion.div>
             </>
           )}
         </nav>
@@ -156,6 +161,11 @@ const Navbar = () => {
   <BookOpen className="h-5 w-5 text-primary" />
   <span>Preparation</span>
 </Link>
+                  </motion.div>
+                  <motion.div whileHover={{ x: 5 }}>
+                    <Link to="/forum" className="flex items-center gap-2 p-2 rounded-md hover:bg-accent" onClick={() => setIsMenuOpen(false)}>
+                      <span>Discussion Forum</span>
+                    </Link>
                   </motion.div>
                 </>
               )}
