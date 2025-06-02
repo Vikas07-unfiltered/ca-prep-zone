@@ -9,26 +9,302 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      feedback: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          message: string
+          name: string | null
+          phone: string
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          message: string
+          name?: string | null
+          phone: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          message?: string
+          name?: string | null
+          phone?: string
+        }
+        Relationships: []
+      }
+      forum_answers: {
+        Row: {
+          answer: string
+          created_at: string | null
+          id: string
+          is_accepted: boolean | null
+          question_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          answer: string
+          created_at?: string | null
+          id?: string
+          is_accepted?: boolean | null
+          question_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          answer?: string
+          created_at?: string | null
+          id?: string
+          is_accepted?: boolean | null
+          question_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "forum_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_answers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_questions: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          title: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          title: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_questions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_upvotes: {
+        Row: {
+          answer_id: string | null
+          created_at: string | null
+          id: string
+          question_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          answer_id?: string | null
+          created_at?: string | null
+          id?: string
+          question_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          answer_id?: string | null
+          created_at?: string | null
+          id?: string
+          question_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_upvotes_answer_id_fkey"
+            columns: ["answer_id"]
+            isOneToOne: false
+            referencedRelation: "forum_answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_upvotes_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "forum_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_upvotes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
           full_name: string | null
           id: string
+          is_admin: boolean | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           full_name?: string | null
           id: string
+          is_admin?: boolean | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_admin?: boolean | null
           updated_at?: string
         }
         Relationships: []
+      }
+      resources_notes: {
+        Row: {
+          created_at: string
+          id: string
+          teacher: string
+          title: string
+          updated_at: string
+          uploader_id: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          teacher: string
+          title: string
+          updated_at?: string
+          uploader_id?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          teacher?: string
+          title?: string
+          updated_at?: string
+          uploader_id?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resources_notes_uploader_id_fkey"
+            columns: ["uploader_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resources_ppts: {
+        Row: {
+          created_at: string
+          id: string
+          teacher: string
+          title: string
+          updated_at: string
+          uploader_id: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          teacher: string
+          title: string
+          updated_at?: string
+          uploader_id?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          teacher?: string
+          title?: string
+          updated_at?: string
+          uploader_id?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resources_ppts_uploader_id_fkey"
+            columns: ["uploader_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      study_rooms: {
+        Row: {
+          ca_level: string
+          created_at: string | null
+          created_by: string | null
+          daily_room_url: string | null
+          description: string | null
+          id: string
+          name: string
+          participants: Json | null
+          room_code: number | null
+          voice_enabled: boolean | null
+        }
+        Insert: {
+          ca_level: string
+          created_at?: string | null
+          created_by?: string | null
+          daily_room_url?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          participants?: Json | null
+          room_code?: number | null
+          voice_enabled?: boolean | null
+        }
+        Update: {
+          ca_level?: string
+          created_at?: string | null
+          created_by?: string | null
+          daily_room_url?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          participants?: Json | null
+          room_code?: number | null
+          voice_enabled?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_rooms_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       study_sessions: {
         Row: {
@@ -65,171 +341,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
-      },
-      resources_notes: {
+      }
+      videos: {
         Row: {
+          ca_level: string | null
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          duration: string | null
           id: string
+          subject: string | null
+          thumbnailUrl: string | null
           title: string
-          teacher: string
+          uploadDate: string | null
           url: string
-          created_at: string
-          updated_at: string
-          uploader_id?: string
         }
         Insert: {
-          title: string;
-          teacher: string;
-          url: string;
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-          uploader_id?: string;
-        }
-        Update: {
+          ca_level?: string | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          duration?: string | null
           id?: string
-          title?: string
-          teacher?: string
-          url?: string
-          created_at?: string
-          updated_at?: string
-          uploader_id?: string
-        }
-        Relationships: []
-      },
-      resources_ppts: {
-        Row: {
-          id: string
+          subject?: string | null
+          thumbnailUrl?: string | null
           title: string
-          teacher: string
+          uploadDate?: string | null
           url: string
-          created_at: string
-          updated_at: string
-          uploader_id?: string
-        }
-        Insert: {
-          title: string;
-          teacher: string;
-          url: string;
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-          uploader_id?: string;
         }
         Update: {
+          ca_level?: string | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          duration?: string | null
           id?: string
+          subject?: string | null
+          thumbnailUrl?: string | null
           title?: string
-          teacher?: string
+          uploadDate?: string | null
           url?: string
-          created_at?: string
-          updated_at?: string
-          uploader_id?: string
         }
-        Relationships: []
-      },
-      feedback: {
-        Row: {
-          id: string;
-          name: string | null;
-          email: string | null;
-          phone: string;
-          message: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          name?: string | null;
-          email?: string | null;
-          phone: string;
-          message: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string | null;
-          email?: string | null;
-          phone?: string;
-          message?: string;
-          created_at?: string;
-        };
-        Relationships: [];
-      },
-      forum_questions: {
-        Row: {
-          id: string;
-          user_id: string | null;
-          title: string;
-          description: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id?: string | null;
-          title: string;
-          description?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string | null;
-          title?: string;
-          description?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      },
-      forum_answers: {
-        Row: {
-          id: string;
-          question_id: string;
-          user_id: string | null;
-          answer: string;
-          is_accepted: boolean;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          question_id: string;
-          user_id?: string | null;
-          answer: string;
-          is_accepted?: boolean;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          question_id?: string;
-          user_id?: string | null;
-          answer?: string;
-          is_accepted?: boolean;
-          created_at?: string;
-        };
-        Relationships: [];
-      },
-      forum_upvotes: {
-        Row: {
-          id: string;
-          user_id: string;
-          question_id: string | null;
-          answer_id: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          question_id?: string | null;
-          answer_id?: string | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          question_id?: string | null;
-          answer_id?: string | null;
-          created_at?: string;
-        };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "videos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
