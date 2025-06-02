@@ -113,5 +113,12 @@ export const StudyRoomService = {
       .update(updates)
       .eq('id', roomId);
     if (error) throw error;
+  },
+
+  async toggleVoiceChat(roomId: string, enabled: boolean): Promise<void> {
+    const { error } = await supabase.from('study_rooms')
+      .update({ voice_enabled: enabled })
+      .eq('id', roomId);
+    if (error) throw error;
   }
 };

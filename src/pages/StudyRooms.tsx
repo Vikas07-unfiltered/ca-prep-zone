@@ -11,9 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StudyRoomService, StudyRoom } from "@/services/StudyRoomService";
-
+import { StudyRoomVoice } from "@/components/voice/StudyRoomVoice";
 import { supabase } from "@/integrations/supabase/client";
-
 import { motion } from "framer-motion";
 import { ScrollReveal } from "@/components/ScrollReveal";
 
@@ -201,6 +200,36 @@ const StudyRooms = () => {
       });
     } catch (e: any) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    }
+  };
+
+  const handleToggleVoice = async (enabled: boolean) => {
+    if (!activeRoomData?.id) return;
+    
+    try {
+      await StudyRoomService.toggleVoiceChat(activeRoomData.id, enabled);
+      
+      // Update local state
+      setStudyRooms(prev => 
+        prev.map(room => 
+          room.id === activeRoomData.id 
+            ? { ...room, voice_enabled: enabled }
+            : room
+        )
+      );
+      
+      toast({
+        title: enabled ? "Voice Chat Enabled" : "Voice Chat Disabled",
+        description: enabled 
+          ? "Participants can now join voice chat" 
+          : "Voice chat has been disabled for this room",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
