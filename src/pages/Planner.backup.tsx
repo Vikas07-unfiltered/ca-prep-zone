@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -403,155 +404,7 @@ const Planner = () => {
                   </CardContent>
                 </Card>
               </ScrollReveal>
-              
-              <ScrollReveal delay={0.2}>
-                <Card>
-                  <CardHeader>
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <CardTitle>Study Analysis</CardTitle>
-                        <CardDescription>Track your study progress and insights</CardDescription>
-                      </div>
-                      <Dialog open={isAddingSession} onOpenChange={setIsAddingSession}>
-                        <DialogTrigger asChild>
-                          <Button>Add Session</Button>
-                        </DialogTrigger>
-                      </Dialog>
-                    </div>
-                  </CardHeader>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Add Study Session</DialogTitle>
-                        <DialogDescription>
-                          Create a new study session for your calendar.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                          <Label htmlFor="subject">Subject</Label>
-                          <Select 
-                            value={newSession.subject} 
-                            onValueChange={(value) => 
-                              setNewSession({...newSession, subject: value})
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a subject" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {subjects.map(subject => (
-                                <SelectItem key={subject} value={subject}>
-                                  {subject}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="grid gap-2">
-                          <Label>Date</Label>
-                          <div className="border rounded-md p-2">
-                            <Calendar
-                              mode="single"
-                              selected={newSession.date}
-                              onSelect={(date) => 
-                                setNewSession({...newSession, date: date || new Date()})
-                              }
-                              className="rounded-md border"
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="grid gap-2">
-                            <Label htmlFor="start-time">Start Time</Label>
-                            <Input
-                              id="start-time"
-                              type="time"
-                              value={newSession.startTime}
-                              onChange={(e) => 
-                                setNewSession({...newSession, startTime: e.target.value})
-                              }
-                            />
-                          </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="end-time">End Time</Label>
-                            <Input
-                              id="end-time"
-                              type="time"
-                              value={newSession.endTime}
-                              onChange={(e) => 
-                                setNewSession({...newSession, endTime: e.target.value})
-                              }
-                            />
-                          </div>
-                        </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor="notes">Notes (Optional)</Label>
-                          <Input
-                            id="notes"
-                            value={newSession.notes}
-                            onChange={(e) => 
-                              setNewSession({...newSession, notes: e.target.value})
-                            }
-                            placeholder="Topics to cover, chapters to read, etc."
-                          />
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button onClick={handleAddSession}>Add Session</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </CardHeader>
-                <CardContent className="pl-2">
-                  <div className="flex flex-col md:flex-row">
-                    <div className="md:w-1/2">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        className="rounded-md border"
-                        initialFocus
-                      />
-                    </div>
-                    <div className="md:w-1/2 p-4 space-y-4">
-                      <h3 className="font-medium">
-                        {date ? format(date, "MMMM d, yyyy") : "Select a date"}
-                      </h3>
-                      
-                      {filteredSessions.length === 0 ? (
-                        <p className="text-muted-foreground">
-                          No study sessions scheduled for this date.
-                        </p>
-                      ) : (
-                        <div className="space-y-3">
-                          {filteredSessions.map((session) => (
-                            <div key={session.id} className="p-3 border rounded-md">
-                              <div className="flex justify-between mb-1">
-                                <h4 className="font-medium">{session.subject}</h4>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  className="h-5 text-xs"
-                                  onClick={() => handleDeleteSession(session.id)}
-                                >
-                                  Delete
-                                </Button>
-                              </div>
-                              <p className="text-sm text-muted-foreground">
-                                {session.startTime} - {session.endTime}
-                              </p>
-                              {session.notes && (
-                                <p className="text-sm mt-1">{session.notes}</p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </ScrollReveal>
+            </div>
             
             <ScrollReveal delay={0.2}>
               <Card>
@@ -626,53 +479,55 @@ const Planner = () => {
           </div>
           
           <div className="space-y-6">
-            <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Subject Distribution</CardTitle>
-                <CardDescription>Time spent per subject</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {Object.keys(subjectHours).length > 0 ? (
-                  <div className="space-y-2">
-                    {Object.entries(subjectHours)
-                      .sort((a, b) => b[1] - a[1])
-                      .map(([subject, hours]) => (
-                        <div key={subject} className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span>{subject}</span>
-                            <span className="font-medium">{formatHours(hours)}</span>
+            <ScrollReveal delay={0.3}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Subject Distribution</CardTitle>
+                  <CardDescription>Time spent per subject</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {Object.keys(subjectHours).length > 0 ? (
+                    <div className="space-y-2">
+                      {Object.entries(subjectHours)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([subject, hours]) => (
+                          <div key={subject} className="space-y-1">
+                            <div className="flex justify-between text-sm">
+                              <span>{subject}</span>
+                              <span className="font-medium">{formatHours(hours)}</span>
+                            </div>
+                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-primary rounded-full" 
+                                style={{ width: `${(hours / Math.max(...Object.values(subjectHours))) * 100}%` }}
+                              />
+                            </div>
                           </div>
-                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-primary rounded-full" 
-                              style={{ width: `${(hours / Math.max(...Object.values(subjectHours))) * 100}%` }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    No study data available. Add study sessions to see your progress.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+                        ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No study data available. Add study sessions to see your progress.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </ScrollReveal>
             
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Sessions</CardTitle>
-                <CardDescription>Your scheduled study sessions</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Weekly Target</Label>
-                    <span className="text-sm font-medium">
-                      20 hours / week
-                    </span>
-                  </div>
+            <ScrollReveal delay={0.4}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upcoming Sessions</CardTitle>
+                  <CardDescription>Your scheduled study sessions</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Weekly Target</Label>
+                      <span className="text-sm font-medium">
+                        20 hours / week
+                      </span>
+                    </div>
                     <div className="w-full bg-secondary rounded-full h-2">
                       <div 
                         className="bg-primary rounded-full h-2" 
@@ -735,7 +590,7 @@ const Planner = () => {
               </Card>
             </ScrollReveal>
             
-            <ScrollReveal delay={0.4}>
+            <ScrollReveal delay={0.5}>
               <Card>
                 <CardHeader>
                   <CardTitle>Study Tips</CardTitle>
