@@ -23,40 +23,43 @@ import TermsOfService from "./pages/TermsOfService";
 import HelpCenter from "./pages/HelpCenter";
 import ContactUs from "./pages/ContactUs";
 import { StrictMode } from "react";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 // Create a client
 const queryClient = new QueryClient();
 
 const App = () => (
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <AuthProvider>
-            <Routes>
-              <Route path="/" element={<MainLayout><Index /></MainLayout>} />
-              <Route path="/tools/*" element={<MainLayout><ProtectedRoute><Tools /></ProtectedRoute></MainLayout>} />
-              <Route path="/preparation" element={<MainLayout><ProtectedRoute><Preparation /></ProtectedRoute></MainLayout>} />
-              <Route path="/resources" element={<MainLayout><ProtectedRoute><Resources /></ProtectedRoute></MainLayout>} />
-              <Route path="/forum" element={<MainLayout><Forum /></MainLayout>} />
-              <Route path="/forum/:id" element={<MainLayout><ForumQuestion /></MainLayout>} />
-              <Route path="/mcq" element={<MainLayout><ProtectedRoute><MCQ /></ProtectedRoute></MainLayout>} />
-              <Route path="/test" element={<MainLayout><ProtectedRoute><Test /></ProtectedRoute></MainLayout>} />
-              <Route path="/login" element={<MainLayout><Login /></MainLayout>} />
-              <Route path="/register" element={<MainLayout><Register /></MainLayout>} />
-              <Route path="/profile" element={<MainLayout><ProtectedRoute><Profile /></ProtectedRoute></MainLayout>} />
-              <Route path="/help-center" element={<MainLayout><HelpCenter /></MainLayout>} />
-              <Route path="/contact-us" element={<MainLayout><ContactUs /></MainLayout>} />
-              <Route path="/privacy-policy" element={<MainLayout><PrivacyPolicy /></MainLayout>} />
-              <Route path="/terms-of-service" element={<MainLayout><TermsOfService /></MainLayout>} />
-              <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
-            </Routes>
-          </AuthProvider>
-        </TooltipProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <AuthProvider>
+              <Routes>
+                <Route path="/" element={<MainLayout><Index /></MainLayout>} />
+                <Route path="/tools/*" element={<MainLayout><ProtectedRoute><Tools /></ProtectedRoute></MainLayout>} />
+                <Route path="/preparation" element={<MainLayout><ProtectedRoute><Preparation /></ProtectedRoute></MainLayout>} />
+                <Route path="/resources" element={<MainLayout><ProtectedRoute><Resources /></ProtectedRoute></MainLayout>} />
+                <Route path="/forum" element={<MainLayout><Forum /></MainLayout>} />
+                <Route path="/forum/:id" element={<MainLayout><ForumQuestion /></MainLayout>} />
+                <Route path="/mcq" element={<MainLayout><ProtectedRoute><MCQ /></ProtectedRoute></MainLayout>} />
+                <Route path="/test" element={<MainLayout><ProtectedRoute><Test /></ProtectedRoute></MainLayout>} />
+                <Route path="/login" element={<MainLayout><Login /></MainLayout>} />
+                <Route path="/register" element={<MainLayout><Register /></MainLayout>} />
+                <Route path="/profile" element={<MainLayout><ProtectedRoute><Profile /></ProtectedRoute></MainLayout>} />
+                <Route path="/help-center" element={<MainLayout><HelpCenter /></MainLayout>} />
+                <Route path="/contact-us" element={<MainLayout><ContactUs /></MainLayout>} />
+                <Route path="/privacy-policy" element={<MainLayout><PrivacyPolicy /></MainLayout>} />
+                <Route path="/terms-of-service" element={<MainLayout><TermsOfService /></MainLayout>} />
+                <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
+              </Routes>
+            </AuthProvider>
+          </TooltipProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   </StrictMode>
 );
 

@@ -2,9 +2,13 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
+import { useState } from 'react';
+
 const Footer = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
 
   // Handler to check auth and redirect if not logged in
   const requireAuth = (path: string) => (e: React.MouseEvent) => {
@@ -33,17 +37,17 @@ const Footer = () => {
             <h3 className="font-medium text-sm mb-3">Features</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/timer" className="text-muted-foreground hover:text-foreground" onClick={requireAuth('/timer')}>
+                <Link to="/tools/timer" className="text-muted-foreground hover:text-foreground" onClick={requireAuth('/tools/timer')}>
                   Pomodoro Timer
                 </Link>
               </li>
               <li>
-                <Link to="/planner" className="text-muted-foreground hover:text-foreground" onClick={requireAuth('/planner')}>
+                <Link to="/tools/planner" className="text-muted-foreground hover:text-foreground" onClick={requireAuth('/tools/planner')}>
                   Study Planner
                 </Link>
               </li>
               <li>
-                <Link to="/rooms" className="text-muted-foreground hover:text-foreground" onClick={requireAuth('/rooms')}>
+                <Link to="/tools/rooms" className="text-muted-foreground hover:text-foreground" onClick={requireAuth('/tools/rooms')}>
                   Study Rooms
                 </Link>
               </li>
@@ -85,11 +89,37 @@ const Footer = () => {
             <h3 className="font-medium text-sm mb-3">Support</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/help-center" className="text-muted-foreground hover:text-foreground">Help Center</Link>
-              </li>
-              <li>
-                <Link to="/contact-us" className="text-muted-foreground hover:text-foreground">Contact Us</Link>
-              </li>
+  <button
+    type="button"
+    className="text-muted-foreground hover:text-foreground w-full text-left flex items-center justify-between"
+    onClick={() => setHelpOpen((v) => !v)}
+    aria-expanded={helpOpen}
+  >
+    Help Center
+    <span className={`ml-2 transition-transform ${helpOpen ? 'rotate-90' : ''}`}>▶</span>
+  </button>
+  {helpOpen && (
+    <ul className="ml-4 mt-2 space-y-1 text-xs text-muted-foreground">
+      <li>• Email: unfilteredca07@gmail.com</li>
+    </ul>
+  )}
+</li>
+<li>
+  <button
+    type="button"
+    className="text-muted-foreground hover:text-foreground w-full text-left flex items-center justify-between"
+    onClick={() => setContactOpen((v) => !v)}
+    aria-expanded={contactOpen}
+  >
+    Contact Us
+    <span className={`ml-2 transition-transform ${contactOpen ? 'rotate-90' : ''}`}>▶</span>
+  </button>
+  {contactOpen && (
+    <ul className="ml-4 mt-2 space-y-1 text-xs text-muted-foreground">
+      <li>• Email: unfilteredca07@gmail.com</li>
+    </ul>
+  )}
+</li>
               <li>
                 <Link to="/privacy-policy" className="text-muted-foreground hover:text-foreground">
                   Privacy Policy
@@ -138,7 +168,6 @@ const Footer = () => {
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 function FeedbackDialog() {

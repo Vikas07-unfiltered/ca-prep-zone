@@ -1,4 +1,115 @@
 import { useState, useEffect } from "react";
+
+// --- Fun Calculation Game for CA Students ---
+function getRandomInt(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+const questionTypes = [
+  'gst', 'depreciation', 'percentage', 'profitLoss'
+] as const;
+type QuestionType = typeof questionTypes[number];
+
+function generateQuestion(): { q: string; answer: number; type: QuestionType } {
+  const type = questionTypes[getRandomInt(0, questionTypes.length - 1)];
+  switch (type) {
+    case 'gst': {
+      const amount = getRandomInt(100, 10000);
+      const rate = [5, 12, 18, 28][getRandomInt(0, 3)];
+      return {
+        q: `Calculate GST (${rate}%) on ₹${amount}`,
+        answer: +(amount * rate / 100).toFixed(2),
+        type,
+      };
+    }
+    case 'depreciation': {
+      const cost = getRandomInt(1000, 50000);
+      const rate = [10, 15, 20][getRandomInt(0, 2)];
+      return {
+        q: `Depreciation at ${rate}% on asset of ₹${cost} (SLM, 1 year)`,
+        answer: +(cost * rate / 100).toFixed(2),
+        type,
+      };
+    }
+    case 'percentage': {
+      const base = getRandomInt(50, 5000);
+      const percent = getRandomInt(1, 100);
+      return {
+        q: `What is ${percent}% of ₹${base}?`,
+        answer: +(base * percent / 100).toFixed(2),
+        type,
+      };
+    }
+    case 'profitLoss': {
+      const cp = getRandomInt(100, 5000);
+      const profit = getRandomInt(5, 30);
+      return {
+        q: `Selling Price if Cost Price is ₹${cp} and Profit % is ${profit}%?`,
+        answer: +(cp * (1 + profit / 100)).toFixed(2),
+        type,
+      };
+    }
+    default:
+      return { q: '', answer: 0, type: 'gst' };
+  }
+}
+
+export function CalculationGame() {
+  const [question, setQuestion] = useState(() => generateQuestion());
+  const [userAnswer, setUserAnswer] = useState('');
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [score, setScore] = useState(0);
+  const [attempts, setAttempts] = useState(0);
+
+  function checkAnswer(e: React.FormEvent) {
+    e.preventDefault();
+    const userNum = parseFloat(userAnswer);
+    if (isNaN(userNum)) {
+      setFeedback('Please enter a valid number.');
+      return;
+    }
+    if (Math.abs(userNum - question.answer) < 0.01) {
+      setFeedback('✅ Correct!');
+      setScore(s => s + 1);
+      setTimeout(() => {
+        setQuestion(generateQuestion());
+        setUserAnswer('');
+        setFeedback(null);
+      }, 1200);
+    } else {
+      setFeedback(`❌ Incorrect. Correct answer: ₹${question.answer}`);
+      setAttempts(a => a + 1);
+      setTimeout(() => {
+        setQuestion(generateQuestion());
+        setUserAnswer('');
+        setFeedback(null);
+      }, 2200);
+    }
+  }
+
+  return (
+    <div>
+      <div className="mb-2 font-semibold">CA Calculation Game</div>
+      <div className="mb-4">{question.q}</div>
+      <form onSubmit={checkAnswer} className="flex flex-col items-center gap-2">
+        <input
+          type="number"
+          step="0.01"
+          value={userAnswer}
+          onChange={e => setUserAnswer(e.target.value)}
+          className="border rounded px-3 py-1 w-40 text-center"
+          placeholder="Enter answer"
+          required
+        />
+        <button type="submit" className="bg-primary text-white px-4 py-1 rounded mt-1">Check</button>
+      </form>
+      {feedback && <div className="mt-3 font-medium">{feedback}</div>}
+      <div className="mt-4 text-xs text-muted-foreground">Score: {score} | Attempts: {attempts}</div>
+    </div>
+  );
+}
+
+import LoadingSkeleton from "@/components/ui/LoadingSkeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -724,6 +835,8 @@ const Resources = () => {
                           src={video.thumbnailUrl}
                           alt={video.title}
                           className="object-cover w-full"
+                          loading="lazy"
+                          style={{ maxHeight: 220, width: "100%", objectFit: "cover" }}
                         />
                       )}
                     </div>
@@ -747,12 +860,12 @@ const Resources = () => {
         )}
       </TabsContent>
       <TabsContent value="fun-games">
-        {/* Fun Games Tab: List of fun/educational games */}
+        {/* Fun Games Tab: CA Calculation Game */}
         <div className="text-center py-12">
           <h3 className="text-lg font-medium mb-4">Fun Games</h3>
-          <ul className="space-y-3 max-w-xl mx-auto">
-            {/* Add your fun/educational game links here */}
-          </ul>
+          <div className="max-w-md mx-auto bg-card rounded shadow p-6">
+            <CalculationGame />
+          </div>
         </div>
       </TabsContent>
     </Tabs>
