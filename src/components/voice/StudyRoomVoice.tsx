@@ -32,10 +32,13 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
     );
   }
 
+  // Create a wrapper div to isolate Daily.co components from Lovable props
   return (
-    <DailyProvider url={roomUrl}>
-      <VoiceChatUI isAdmin={isAdmin} onToggleVoice={onToggleVoice} />
-    </DailyProvider>
+    <div style={{ contain: 'layout' }}>
+      <DailyProvider url={roomUrl}>
+        <VoiceChatUI isAdmin={isAdmin} onToggleVoice={onToggleVoice} />
+      </DailyProvider>
+    </div>
   );
 };
 
@@ -144,7 +147,9 @@ const VoiceChatUI: React.FC<{ isAdmin: boolean; onToggleVoice: (enabled: boolean
 
   return (
     <div className="p-4 border-t">
-      <DailyAudio />
+      <div style={{ contain: 'layout' }}>
+        <DailyAudio />
+      </div>
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-medium">Voice Chat</h3>
         {isAdmin && (
