@@ -41,6 +41,24 @@ async function generateUniqueRoomCode(): Promise<number> {
   return code!;
 }
 
+async function createDailyRoom(roomName: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke('create-daily-room', {
+      body: { roomName }
+    });
+
+    if (error) {
+      console.error('Error creating Daily.co room:', error);
+      return null;
+    }
+
+    return data?.url || null;
+  } catch (error) {
+    console.error('Error calling create-daily-room function:', error);
+    return null;
+  }
+}
+
 export const StudyRoomService = {
   async getAll(): Promise<StudyRoom[]> {
     const { data, error } = await supabase.from('study_rooms')
@@ -52,8 +70,17 @@ export const StudyRoomService = {
 
   async create(room: Omit<StudyRoom, 'id' | 'created_at' | 'room_code'>): Promise<StudyRoom> {
     const room_code = await generateUniqueRoomCode();
+    
+    // Create Daily.co room
+    const daily_room_url = await createDailyRoom(`studyroom-${room_code}`);
+    
     const { data, error } = await supabase.from('study_rooms')
-      .insert({ ...room, room_code })
+      .insert({ 
+        ...room, 
+        room_code,
+        daily_room_url,
+        voice_enabled: true // Enable voice by default
+      })
       .select()
       .single();
     if (error) throw error;
