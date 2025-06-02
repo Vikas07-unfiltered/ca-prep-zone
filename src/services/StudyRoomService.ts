@@ -14,6 +14,22 @@ export interface StudyRoom {
   voice_enabled?: boolean;
 }
 
+// Helper function to safely convert Json to string array
+function jsonToStringArray(json: any): string[] {
+  if (Array.isArray(json)) {
+    return json.filter(item => typeof item === 'string');
+  }
+  return [];
+}
+
+// Helper function to convert database row to StudyRoom
+function mapDbRowToStudyRoom(row: any): StudyRoom {
+  return {
+    ...row,
+    participants: jsonToStringArray(row.participants)
+  };
+}
+
 async function generateUniqueRoomCode(): Promise<number> {
   let code: number;
   let exists = true;
@@ -31,7 +47,7 @@ export const StudyRoomService = {
       .select('*')
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return data;
+    return data ? data.map(mapDbRowToStudyRoom) : [];
   },
 
   async create(room: Omit<StudyRoom, 'id' | 'created_at' | 'room_code'>): Promise<StudyRoom> {
@@ -41,7 +57,7 @@ export const StudyRoomService = {
       .select()
       .single();
     if (error) throw error;
-    return data;
+    return mapDbRowToStudyRoom(data);
   },
 
   async joinRoom(room_code: number, participant: string): Promise<void> {
@@ -51,7 +67,8 @@ export const StudyRoomService = {
       .eq('room_code', room_code)
       .single();
     if (roomError) throw roomError;
-    const participants = roomData.participants || [];
+    
+    const participants = jsonToStringArray(roomData.participants);
 
     // Limit: Only 50 users can join one room
     if (participants.length >= 50 && !participants.includes(participant)) {
@@ -81,7 +98,7 @@ export const StudyRoomService = {
       .eq('room_code', room_code)
       .single();
     if (error) return null;
-    return data;
+    return data ? mapDbRowToStudyRoom(data) : null;
   },
 
   async deleteRoom(roomId: string): Promise<void> {
