@@ -12,6 +12,29 @@ interface StudyRoomVoiceProps {
   onToggleVoice: (enabled: boolean) => void;
 }
 
+// Isolated wrapper component that strips all props except the ones we need
+const IsolatedDailyProvider: React.FC<{ 
+  roomUrl: string; 
+  children: React.ReactNode 
+}> = ({ roomUrl, children }) => {
+  return (
+    <div>
+      <DailyProvider url={roomUrl}>
+        {children}
+      </DailyProvider>
+    </div>
+  );
+};
+
+// Isolated audio component
+const IsolatedDailyAudio: React.FC = () => {
+  return (
+    <div>
+      <DailyAudio />
+    </div>
+  );
+};
+
 export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({ 
   roomUrl, 
   isVoiceEnabled, 
@@ -32,13 +55,10 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
     );
   }
 
-  // Create a wrapper div to isolate Daily.co components from Lovable props
   return (
-    <div style={{ contain: 'layout' }}>
-      <DailyProvider url={roomUrl}>
-        <VoiceChatUI isAdmin={isAdmin} onToggleVoice={onToggleVoice} />
-      </DailyProvider>
-    </div>
+    <IsolatedDailyProvider roomUrl={roomUrl}>
+      <VoiceChatUI isAdmin={isAdmin} onToggleVoice={onToggleVoice} />
+    </IsolatedDailyProvider>
   );
 };
 
@@ -147,9 +167,7 @@ const VoiceChatUI: React.FC<{ isAdmin: boolean; onToggleVoice: (enabled: boolean
 
   return (
     <div className="p-4 border-t">
-      <div style={{ contain: 'layout' }}>
-        <DailyAudio />
-      </div>
+      <IsolatedDailyAudio />
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-medium">Voice Chat</h3>
         {isAdmin && (
