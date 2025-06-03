@@ -22,8 +22,12 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import HelpCenter from "./pages/HelpCenter";
 import ContactUs from "./pages/ContactUs";
+import StudyAnalysisPage from "./pages/StudyAnalysis"; // Added import for StudyAnalysisPage
+import PomodoroPage from "./pages/PomodoroPage"; // Added import for PomodoroPage
+import AchievementsLeaderboard from "./pages/AchievementsLeaderboard"; // Added import for AchievementsLeaderboard
 import { StrictMode } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
+import ScrollToTop from "./components/ScrollToTop"; // Added import for ScrollToTop
 
 // Create a client
 const queryClient = new QueryClient();
@@ -33,6 +37,7 @@ const App = () => (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
+          <ScrollToTop />
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -53,6 +58,9 @@ const App = () => (
                 <Route path="/contact-us" element={<MainLayout><ContactUs /></MainLayout>} />
                 <Route path="/privacy-policy" element={<MainLayout><PrivacyPolicy /></MainLayout>} />
                 <Route path="/terms-of-service" element={<MainLayout><TermsOfService /></MainLayout>} />
+                <Route path="/study-analysis" element={<MainLayout><ProtectedRoute><StudyAnalysisPage /></ProtectedRoute></MainLayout>} /> {/* Added route for Study Analysis */}
+                <Route path="/pomodoro" element={<MainLayout><ProtectedRoute><PomodoroPage /></ProtectedRoute></MainLayout>} /> {/* Added route for Pomodoro Page */}
+                <Route path="/achievements" element={<MainLayout><ProtectedRoute><AchievementsLeaderboard /></ProtectedRoute></MainLayout>} /> {/* Added route for Achievements & Leaderboard */}
                 <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
               </Routes>
             </AuthProvider>
