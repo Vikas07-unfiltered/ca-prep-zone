@@ -12,23 +12,21 @@ interface StudyRoomVoiceProps {
   onToggleVoice: (enabled: boolean) => void;
 }
 
-// Completely isolated wrapper that strips ALL props and only passes what's needed
-const IsolatedDailyProvider: React.FC<{ 
+// Clean wrapper component for DailyProvider
+const CleanDailyProvider: React.FC<{ 
   roomUrl: string; 
   children: React.ReactNode 
 }> = ({ roomUrl, children }) => {
-  // Create a completely clean div with no props whatsoever
-  return React.createElement('div', {}, 
-    React.createElement(DailyProvider, { url: roomUrl }, children)
+  return (
+    <DailyProvider url={roomUrl}>
+      {children}
+    </DailyProvider>
   );
 };
 
-// Completely isolated audio component with no props
-const IsolatedDailyAudio: React.FC = () => {
-  // Create a completely clean div with no props whatsoever
-  return React.createElement('div', {}, 
-    React.createElement(DailyAudio, {})
-  );
+// Clean wrapper component for DailyAudio
+const CleanDailyAudio: React.FC = () => {
+  return <DailyAudio />;
 };
 
 // Helper function to validate Daily.co room URL
@@ -84,9 +82,9 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
   }
 
   return (
-    <IsolatedDailyProvider roomUrl={roomUrl}>
+    <CleanDailyProvider roomUrl={roomUrl}>
       <VoiceChatUI isAdmin={isAdmin} onToggleVoice={onToggleVoice} />
-    </IsolatedDailyProvider>
+    </CleanDailyProvider>
   );
 };
 
@@ -253,7 +251,7 @@ const VoiceChatUI: React.FC<{ isAdmin: boolean; onToggleVoice: (enabled: boolean
 
   return (
     <div className="p-4 border-t">
-      <IsolatedDailyAudio />
+      <CleanDailyAudio />
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-medium">Voice Chat</h3>
         {isAdmin && (
