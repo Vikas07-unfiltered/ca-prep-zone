@@ -96,6 +96,7 @@ const StudyRooms = () => {
       return;
     }
     try {
+      console.log('Creating room with voice chat...');
       const createdRoom = await StudyRoomService.create({
         name: newRoom.name,
         description: newRoom.description,
@@ -103,6 +104,7 @@ const StudyRooms = () => {
         created_by: user.id,
         participants: [user.id],
       });
+      console.log('Room created successfully:', createdRoom);
       setStudyRooms((prev) => [createdRoom, ...prev]);
       setIsCreatingRoom(false);
       setActiveRoom(createdRoom.id!);
@@ -112,7 +114,12 @@ const StudyRooms = () => {
       });
       setNewRoom({ name: "", description: "", ca_level: "" });
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      console.error('Error creating room:', e);
+      toast({ 
+        title: "Error", 
+        description: e.message || "Failed to create room", 
+        variant: "destructive" 
+      });
     }
   };
 
@@ -211,6 +218,7 @@ const StudyRooms = () => {
           : "Voice chat has been disabled for this room",
       });
     } catch (error: any) {
+      console.error('Error toggling voice chat:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -228,6 +236,11 @@ const StudyRooms = () => {
   const filteredRooms = studyRooms.filter(room =>
     selectedLevel === "All" || room.ca_level === selectedLevel
   );
+
+  // Helper function to check if voice chat is available
+  const isVoiceChatAvailable = (room: StudyRoom) => {
+    return room.daily_room_url && room.daily_room_url.includes('daily.co');
+  };
 
   return (
     <div className="container py-8 md:py-12">
@@ -499,7 +512,7 @@ const StudyRooms = () => {
                           <Users className="h-4 w-4 mr-2" />
                           Participants
                         </TabsTrigger>
-                        {activeRoomData?.daily_room_url && (
+                        {isVoiceChatAvailable(activeRoomData) && (
                           <TabsTrigger value="voice">
                             <span role="img" aria-label="Voice Chat" className="h-4 w-4 mr-2">🔊</span>
                             Voice Chat
@@ -614,17 +627,27 @@ const StudyRooms = () => {
                         </TabsContent>
                       </motion.div>
                       
-                      {activeRoomData?.daily_room_url && (
+                      {isVoiceChatAvailable(activeRoomData) ? (
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
                           <TabsContent value="voice">
                             <StudyRoomVoice
-                              roomUrl={activeRoomData.daily_room_url}
+                              roomUrl={activeRoomData.daily_room_url!}
                               isVoiceEnabled={activeRoomData.voice_enabled ?? true}
                               isAdmin={user?.id === activeRoomData.created_by}
                               onToggleVoice={handleToggleVoice}
                             />
                           </TabsContent>
                         </motion.div>
+                      ) : (
+                        <TabsContent value="voice">
+                          <div className="p-4 text-center text-muted-foreground border rounded">
+                            <AlertCircle className="h-8 w-8 mx-auto mb-2 text-orange-500" />
+                            <p className="mb-2">Voice chat is not available for this room.</p>
+                            <p className="text-sm">
+                              This room was created without voice chat functionality.
+                            </p>
+                          </div>
+                        </TabsContent>
                       )}
                     </Tabs>
                   </CardContent>

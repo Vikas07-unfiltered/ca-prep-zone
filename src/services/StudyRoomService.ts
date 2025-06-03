@@ -43,19 +43,26 @@ async function generateUniqueRoomCode(): Promise<number> {
 
 async function createDailyRoom(roomName: string): Promise<string | null> {
   try {
+    console.log('Creating Daily.co room for:', roomName);
     const { data, error } = await supabase.functions.invoke('create-daily-room', {
       body: { roomName }
     });
 
     if (error) {
       console.error('Error creating Daily.co room:', error);
-      return null;
+      throw new Error(`Daily.co room creation failed: ${error.message}`);
     }
 
-    return data?.url || null;
+    if (!data?.url) {
+      console.error('No URL returned from Daily.co room creation');
+      throw new Error('Daily.co room creation returned no URL');
+    }
+
+    console.log('Daily.co room created successfully:', data.url);
+    return data.url;
   } catch (error) {
     console.error('Error calling create-daily-room function:', error);
-    return null;
+    throw error;
   }
 }
 
@@ -71,8 +78,17 @@ export const StudyRoomService = {
   async create(room: Omit<StudyRoom, 'id' | 'created_at' | 'room_code'>): Promise<StudyRoom> {
     const room_code = await generateUniqueRoomCode();
     
-    // Create Daily.co room
-    const daily_room_url = await createDailyRoom(`studyroom-${room_code}`);
+    // Create Daily.co room first - if this fails, don't create the study room
+    let daily_room_url: string | null = null;
+    try {
+      daily_room_url = await createDailyRoom(`studyroom-${room_code}`);
+      if (!daily_room_url) {
+        throw new Error('Failed to create Daily.co room - no URL returned');
+      }
+    } catch (error: any) {
+      console.error('Failed to create Daily.co room:', error);
+      throw new Error(`Voice chat setup failed: ${error.message}`);
+    }
     
     const { data, error } = await supabase.from('study_rooms')
       .insert({ 
