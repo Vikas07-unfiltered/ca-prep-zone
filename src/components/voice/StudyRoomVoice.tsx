@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { DailyProvider, useDaily, useDailyEvent, useLocalParticipant, useParticipantIds, DailyAudio } from "@daily-co/daily-react";
 import { Button } from "@/components/ui/button";
@@ -154,15 +155,6 @@ const VoiceChatUI: React.FC<{ isAdmin: boolean; onToggleVoice: (enabled: boolean
     toast({
       title: "Camera Error",
       description: "There was an issue with camera access, but voice chat should still work.",
-      variant: "destructive",
-    });
-  });
-
-  useDailyEvent("mic-error", (event) => {
-    console.error('Daily.co microphone error:', event);
-    toast({
-      title: "Microphone Error",
-      description: "Please check your microphone permissions and try again.",
       variant: "destructive",
     });
   });
