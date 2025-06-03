@@ -12,26 +12,22 @@ interface StudyRoomVoiceProps {
   onToggleVoice: (enabled: boolean) => void;
 }
 
-// Isolated wrapper component that strips all props except the ones we need
+// Completely isolated wrapper that strips ALL props and only passes what's needed
 const IsolatedDailyProvider: React.FC<{ 
   roomUrl: string; 
   children: React.ReactNode 
 }> = ({ roomUrl, children }) => {
-  return (
-    <div>
-      <DailyProvider url={roomUrl}>
-        {children}
-      </DailyProvider>
-    </div>
+  // Create a completely clean div with no props whatsoever
+  return React.createElement('div', {}, 
+    React.createElement(DailyProvider, { url: roomUrl }, children)
   );
 };
 
-// Isolated audio component
+// Completely isolated audio component with no props
 const IsolatedDailyAudio: React.FC = () => {
-  return (
-    <div>
-      <DailyAudio />
-    </div>
+  // Create a completely clean div with no props whatsoever
+  return React.createElement('div', {}, 
+    React.createElement(DailyAudio, {})
   );
 };
 
