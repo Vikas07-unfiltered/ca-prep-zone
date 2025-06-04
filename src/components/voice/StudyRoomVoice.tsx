@@ -12,23 +12,6 @@ interface StudyRoomVoiceProps {
   onToggleVoice: (enabled: boolean) => void;
 }
 
-// Clean wrapper component for DailyProvider
-const CleanDailyProvider: React.FC<{ 
-  roomUrl: string; 
-  children: React.ReactNode 
-}> = ({ roomUrl, children }) => {
-  return (
-    <DailyProvider url={roomUrl}>
-      {children}
-    </DailyProvider>
-  );
-};
-
-// Clean wrapper component for DailyAudio
-const CleanDailyAudio: React.FC = () => {
-  return <DailyAudio />;
-};
-
 // Helper function to validate Daily.co room URL
 const isValidDailyUrl = (url: string): boolean => {
   if (!url) return false;
@@ -82,9 +65,9 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
   }
 
   return (
-    <CleanDailyProvider roomUrl={roomUrl}>
+    <DailyProvider url={roomUrl}>
       <VoiceChatUI isAdmin={isAdmin} onToggleVoice={onToggleVoice} />
-    </CleanDailyProvider>
+    </DailyProvider>
   );
 };
 
@@ -140,15 +123,6 @@ const VoiceChatUI: React.FC<{ isAdmin: boolean; onToggleVoice: (enabled: boolean
     toast({
       title: "Voice Chat Error",
       description: "Failed to connect to voice chat. Please check your microphone permissions and try again.",
-      variant: "destructive",
-    });
-  });
-
-  useDailyEvent("camera-error", (event) => {
-    console.error('Daily.co camera error:', event);
-    toast({
-      title: "Camera Error",
-      description: "There was an issue with camera access, but voice chat should still work.",
       variant: "destructive",
     });
   });
@@ -251,7 +225,7 @@ const VoiceChatUI: React.FC<{ isAdmin: boolean; onToggleVoice: (enabled: boolean
 
   return (
     <div className="p-4 border-t">
-      <CleanDailyAudio />
+      <DailyAudio />
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-medium">Voice Chat</h3>
         {isAdmin && (

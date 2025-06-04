@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StudyRoomService, StudyRoom } from "@/services/StudyRoomService";
 import { StudyRoomVoice } from "@/components/voice/StudyRoomVoice";
+import { VoiceErrorBoundary } from "@/components/voice/VoiceErrorBoundary";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { ScrollReveal } from "@/components/ScrollReveal";
@@ -631,12 +632,14 @@ const StudyRooms = () => {
                       {isVoiceChatAvailable(activeRoomData) ? (
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
                           <TabsContent value="voice">
-                            <StudyRoomVoice
-                              roomUrl={activeRoomData.daily_room_url!}
-                              isVoiceEnabled={activeRoomData.voice_enabled ?? true}
-                              isAdmin={user?.id === activeRoomData.created_by}
-                              onToggleVoice={handleToggleVoice}
-                            />
+                            <VoiceErrorBoundary>
+                              <StudyRoomVoice
+                                roomUrl={activeRoomData.daily_room_url!}
+                                isVoiceEnabled={activeRoomData.voice_enabled ?? true}
+                                isAdmin={user?.id === activeRoomData.created_by}
+                                onToggleVoice={handleToggleVoice}
+                              />
+                            </VoiceErrorBoundary>
                           </TabsContent>
                         </motion.div>
                       ) : (

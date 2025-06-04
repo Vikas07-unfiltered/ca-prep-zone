@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +17,7 @@ const getPomodoroStats = () => {
   return stats;
 };
 
-const PomodoroPage = () => {
+const PomodoroPage: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -27,7 +28,6 @@ const PomodoroPage = () => {
     <div className="container mx-auto p-4 md:p-8">
       <h1 className="text-3xl font-bold mb-8 text-center">Pomodoro Hub</h1>
       
-      {/* Pomodoros Completed Chart */}
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>Pomodoros Completed (Last 7 Days)</CardTitle>
@@ -47,13 +47,6 @@ const PomodoroPage = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Placeholder for the actual Pomodoro Timer component if it's to be moved here */}
-      {/* <div className="my-8">
-        <h2 className="text-xl font-bold mb-4">Pomodoro Timer</h2>
-        <p className="text-muted-foreground">Timer component will go here.</p>
-      </div> */}
-
     </div>
   );
 };
