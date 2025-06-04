@@ -11,6 +11,7 @@ export const useDailyVoice = ({ roomUrl, isConnected }: UseDailyVoiceProps) => {
   const { toast } = useToast();
   const [isMuted, setIsMuted] = useState(false);
   const [participantCount, setParticipantCount] = useState(1);
+  const [hasError, setHasError] = useState(false);
   const callFrameRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -41,6 +42,7 @@ export const useDailyVoice = ({ roomUrl, isConnected }: UseDailyVoiceProps) => {
 
           callFrame.on('joined-meeting', () => {
             console.log('Successfully joined Daily.co meeting');
+            setHasError(false);
             toast({
               title: "Voice Chat Joined",
               description: "You've successfully joined the voice chat!",
@@ -61,20 +63,34 @@ export const useDailyVoice = ({ roomUrl, isConnected }: UseDailyVoiceProps) => {
 
           callFrame.on('error', (event: any) => {
             console.error('Daily.co error:', event);
-            toast({
-              title: "Voice Chat Error",
-              description: "Failed to connect to voice chat. Please try again.",
-              variant: "destructive",
-            });
+            
+            // Handle specific payment/account errors
+            if (event.errorMsg === 'account-missing-payment-method' || 
+                event.errorMsg === 'room-not-found' ||
+                event.errorMsg === 'meeting-session-state-error') {
+              setHasError(true);
+              toast({
+                title: "Voice Chat Service Unavailable",
+                description: "Voice chat requires a paid Daily.co account. Please use text chat for now.",
+                variant: "destructive",
+              });
+            } else {
+              toast({
+                title: "Voice Chat Error",
+                description: "Failed to connect to voice chat. Please try again.",
+                variant: "destructive",
+              });
+            }
           });
 
           await callFrame.join({ url: roomUrl });
         }
       } catch (error) {
         console.error('Error initializing Daily.co:', error);
+        setHasError(true);
         toast({
-          title: "Voice Chat Error",
-          description: "Failed to initialize voice chat. Please refresh and try again.",
+          title: "Voice Chat Unavailable",
+          description: "Voice chat service is currently unavailable. Please use text chat.",
           variant: "destructive",
         });
       }
@@ -93,7 +109,7 @@ export const useDailyVoice = ({ roomUrl, isConnected }: UseDailyVoiceProps) => {
   }, [isConnected, roomUrl, toast]);
 
   const toggleMute = () => {
-    if (callFrameRef.current) {
+    if (callFrameRef.current && !hasError) {
       const newMutedState = !isMuted;
       console.log('Toggling microphone:', newMutedState ? 'muted' : 'unmuted');
       callFrameRef.current.setLocalAudio(!newMutedState);
@@ -113,6 +129,7 @@ export const useDailyVoice = ({ roomUrl, isConnected }: UseDailyVoiceProps) => {
     participantCount,
     containerRef,
     toggleMute,
-    leaveCall
+    leaveCall,
+    hasError
   };
 };

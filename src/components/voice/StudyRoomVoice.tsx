@@ -7,12 +7,14 @@ import { useMicrophonePermission } from "@/hooks/useMicrophonePermission";
 import { VoiceControls } from "./VoiceControls";
 import { VoiceConnectionInterface } from "./VoiceConnectionInterface";
 import { VoiceDisabledState } from "./VoiceDisabledState";
+import { VoiceServiceUnavailable } from "./VoiceServiceUnavailable";
 
 interface StudyRoomVoiceProps {
   roomUrl: string;
   isVoiceEnabled: boolean;
   isAdmin: boolean;
   onToggleVoice: (enabled: boolean) => void;
+  onSwitchToTextChat?: () => void;
 }
 
 const isValidDailyUrl = (url: string): boolean => {
@@ -29,7 +31,8 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
   roomUrl, 
   isVoiceEnabled, 
   isAdmin, 
-  onToggleVoice 
+  onToggleVoice,
+  onSwitchToTextChat 
 }) => {
   const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
@@ -41,7 +44,8 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
     participantCount, 
     containerRef, 
     toggleMute, 
-    leaveCall 
+    leaveCall,
+    hasError
   } = useDailyVoice({ 
     roomUrl, 
     isConnected 
@@ -58,6 +62,29 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
         isValidUrl={isValidUrl}
         onToggleVoice={onToggleVoice}
       />
+    );
+  }
+
+  // Show service unavailable message if there's a Daily.co error
+  if (hasError && isConnected) {
+    return (
+      <div className="p-4 border-t">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-medium">Voice Chat</h3>
+          {isAdmin && (
+            <Button
+              variant="outline" 
+              size="sm"
+              onClick={() => onToggleVoice(false)}
+            >
+              Disable Voice
+            </Button>
+          )}
+        </div>
+        <VoiceServiceUnavailable 
+          onBackToChat={() => onSwitchToTextChat && onSwitchToTextChat()}
+        />
+      </div>
     );
   }
 
@@ -90,6 +117,7 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
   const handleLeaveCall = () => {
     leaveCall();
     setIsConnected(false);
+    setIsJoining(false);
   };
 
   if (!isConnected) {

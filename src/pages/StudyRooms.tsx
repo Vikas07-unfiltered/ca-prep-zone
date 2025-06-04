@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -226,6 +225,14 @@ const StudyRooms = () => {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const handleSwitchToTextChat = () => {
+    // Find the chat tab and switch to it
+    const chatTab = document.querySelector('[data-value="chat"]') as HTMLElement;
+    if (chatTab) {
+      chatTab.click();
     }
   };
 
@@ -506,7 +513,7 @@ const StudyRooms = () => {
                     
                     <Tabs defaultValue="chat">
                       <TabsList className="mb-4">
-                        <TabsTrigger value="chat">
+                        <TabsTrigger value="chat" data-value="chat">
                           <MessageCircle className="h-4 w-4 mr-2" />
                           Chat
                         </TabsTrigger>
@@ -638,6 +645,7 @@ const StudyRooms = () => {
                                 isVoiceEnabled={activeRoomData.voice_enabled ?? true}
                                 isAdmin={user?.id === activeRoomData.created_by}
                                 onToggleVoice={handleToggleVoice}
+                                onSwitchToTextChat={handleSwitchToTextChat}
                               />
                             </VoiceErrorBoundary>
                           </TabsContent>
