@@ -1,6 +1,5 @@
 
-import React, { useEffect, useState } from "react";
-import { DailyProvider, useDaily, useDailyEvent, useLocalParticipant, useParticipantIds, DailyAudio } from "@daily-co/daily-react";
+import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Phone, PhoneOff, Volume2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -29,7 +28,120 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
   isAdmin, 
   onToggleVoice 
 }) => {
+  const { toast } = useToast();
+  const [isConnected, setIsConnected] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [participantCount, setParticipantCount] = useState(1);
+  const [microphonePermission, setMicrophonePermission] = useState<'granted' | 'denied' | 'prompt' | 'unknown'>('unknown');
+  const callFrameRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   console.log('StudyRoomVoice props:', { roomUrl, isVoiceEnabled, isAdmin });
+
+  // Check microphone permissions on mount
+  useEffect(() => {
+    const checkMicrophonePermission = async () => {
+      try {
+        if (navigator.permissions) {
+          const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+          setMicrophonePermission(permission.state);
+          console.log('Microphone permission:', permission.state);
+        }
+      } catch (error) {
+        console.warn('Could not check microphone permission:', error);
+        setMicrophonePermission('unknown');
+      }
+    };
+
+    checkMicrophonePermission();
+  }, []);
+
+  // Initialize Daily.co when connected
+  useEffect(() => {
+    let callFrame: any = null;
+
+    const initializeDaily = async () => {
+      if (!isConnected || !isValidDailyUrl(roomUrl)) return;
+
+      try {
+        // Dynamically import Daily.co
+        const DailyIframe = (await import('@daily-co/daily-js')).default;
+        
+        if (containerRef.current && !callFrameRef.current) {
+          callFrame = DailyIframe.createFrame(containerRef.current, {
+            showLeaveButton: false,
+            showFullscreenButton: false,
+            showLocalVideo: false,
+            showParticipantsBar: false,
+            iframeStyle: {
+              width: '100%',
+              height: '300px',
+              border: 'none',
+              borderRadius: '8px'
+            }
+          });
+
+          callFrameRef.current = callFrame;
+
+          // Set up event listeners
+          callFrame.on('joined-meeting', () => {
+            console.log('Successfully joined Daily.co meeting');
+            toast({
+              title: "Voice Chat Joined",
+              description: "You've successfully joined the voice chat!",
+            });
+          });
+
+          callFrame.on('left-meeting', () => {
+            console.log('Left Daily.co meeting');
+            setIsConnected(false);
+            setIsJoining(false);
+          });
+
+          callFrame.on('participant-joined', () => {
+            setParticipantCount(prev => prev + 1);
+          });
+
+          callFrame.on('participant-left', () => {
+            setParticipantCount(prev => Math.max(1, prev - 1));
+          });
+
+          callFrame.on('error', (event: any) => {
+            console.error('Daily.co error:', event);
+            setIsJoining(false);
+            toast({
+              title: "Voice Chat Error",
+              description: "Failed to connect to voice chat. Please try again.",
+              variant: "destructive",
+            });
+          });
+
+          // Join the call
+          await callFrame.join({ url: roomUrl });
+        }
+      } catch (error) {
+        console.error('Error initializing Daily.co:', error);
+        setIsJoining(false);
+        toast({
+          title: "Voice Chat Error",
+          description: "Failed to initialize voice chat. Please refresh and try again.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    if (isConnected) {
+      initializeDaily();
+    }
+
+    return () => {
+      if (callFrame) {
+        callFrame.destroy();
+        callFrameRef.current = null;
+      }
+    };
+  }, [isConnected, roomUrl, toast]);
 
   // Check if voice is disabled
   if (!isVoiceEnabled) {
@@ -64,75 +176,7 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
     );
   }
 
-  return (
-    <DailyProvider url={roomUrl}>
-      <VoiceChatUI isAdmin={isAdmin} onToggleVoice={onToggleVoice} />
-    </DailyProvider>
-  );
-};
-
-const VoiceChatUI: React.FC<{ isAdmin: boolean; onToggleVoice: (enabled: boolean) => void }> = ({ 
-  isAdmin, 
-  onToggleVoice 
-}) => {
-  const callObject = useDaily();
-  const local = useLocalParticipant();
-  const participantIds = useParticipantIds();
-  const { toast } = useToast();
-  const [isConnected, setIsConnected] = useState(false);
-  const [isJoining, setIsJoining] = useState(false);
-  const [microphonePermission, setMicrophonePermission] = useState<'granted' | 'denied' | 'prompt' | 'unknown'>('unknown');
-
-  // Check microphone permissions on mount
-  useEffect(() => {
-    const checkMicrophonePermission = async () => {
-      try {
-        if (navigator.permissions) {
-          const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-          setMicrophonePermission(permission.state);
-          console.log('Microphone permission:', permission.state);
-        }
-      } catch (error) {
-        console.warn('Could not check microphone permission:', error);
-        setMicrophonePermission('unknown');
-      }
-    };
-
-    checkMicrophonePermission();
-  }, []);
-
-  useDailyEvent("joined-meeting", () => {
-    console.log('Successfully joined Daily.co meeting');
-    setIsConnected(true);
-    setIsJoining(false);
-    toast({
-      title: "Voice Chat Joined",
-      description: "You've successfully joined the voice chat!",
-    });
-  });
-
-  useDailyEvent("left-meeting", () => {
-    console.log('Left Daily.co meeting');
-    setIsConnected(false);
-    setIsJoining(false);
-  });
-
-  useDailyEvent("error", (event) => {
-    console.error('Daily.co error:', event);
-    setIsJoining(false);
-    toast({
-      title: "Voice Chat Error",
-      description: "Failed to connect to voice chat. Please check your microphone permissions and try again.",
-      variant: "destructive",
-    });
-  });
-
   const handleJoinCall = async () => {
-    if (!callObject) {
-      console.error('Daily call object not available');
-      return;
-    }
-
     // Check microphone permission before joining
     if (microphonePermission === 'denied') {
       toast({
@@ -144,11 +188,10 @@ const VoiceChatUI: React.FC<{ isAdmin: boolean; onToggleVoice: (enabled: boolean
     }
 
     setIsJoining(true);
-    console.log('Attempting to join Daily.co call');
+    console.log('Attempting to join voice chat');
     
     try {
-      await callObject.join();
-      console.log('Join call request sent');
+      setIsConnected(true);
     } catch (error) {
       console.error('Error joining call:', error);
       setIsJoining(false);
@@ -161,17 +204,19 @@ const VoiceChatUI: React.FC<{ isAdmin: boolean; onToggleVoice: (enabled: boolean
   };
 
   const handleLeaveCall = () => {
-    if (callObject) {
-      console.log('Leaving Daily.co call');
-      callObject.leave();
+    console.log('Leaving voice chat');
+    if (callFrameRef.current) {
+      callFrameRef.current.leave();
     }
+    setIsConnected(false);
   };
 
   const toggleMute = () => {
-    if (callObject && local) {
-      const newAudioState = !local.audio;
-      console.log('Toggling microphone:', newAudioState ? 'unmuted' : 'muted');
-      callObject.setLocalAudio(newAudioState);
+    if (callFrameRef.current) {
+      const newMutedState = !isMuted;
+      console.log('Toggling microphone:', newMutedState ? 'muted' : 'unmuted');
+      callFrameRef.current.setLocalAudio(!newMutedState);
+      setIsMuted(newMutedState);
     }
   };
 
@@ -225,7 +270,6 @@ const VoiceChatUI: React.FC<{ isAdmin: boolean; onToggleVoice: (enabled: boolean
 
   return (
     <div className="p-4 border-t">
-      <DailyAudio />
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-medium">Voice Chat</h3>
         {isAdmin && (
@@ -239,22 +283,25 @@ const VoiceChatUI: React.FC<{ isAdmin: boolean; onToggleVoice: (enabled: boolean
         )}
       </div>
       
+      {/* Daily.co iframe container */}
+      <div ref={containerRef} className="mb-3 rounded-lg overflow-hidden bg-gray-100" />
+      
       <div className="flex items-center gap-2 mb-3">
         <Button
-          variant={local?.audio ? "default" : "secondary"}
+          variant={isMuted ? "secondary" : "default"}
           size="sm"
           onClick={toggleMute}
           className="flex-1"
         >
-          {local?.audio ? (
-            <>
-              <Mic className="h-4 w-4 mr-2" />
-              Unmuted
-            </>
-          ) : (
+          {isMuted ? (
             <>
               <MicOff className="h-4 w-4 mr-2" />
               Muted
+            </>
+          ) : (
+            <>
+              <Mic className="h-4 w-4 mr-2" />
+              Unmuted
             </>
           )}
         </Button>
@@ -273,7 +320,7 @@ const VoiceChatUI: React.FC<{ isAdmin: boolean; onToggleVoice: (enabled: boolean
       <div className="text-xs text-muted-foreground text-center">
         <span className="inline-flex items-center gap-1">
           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-          {participantIds.length} participant{participantIds.length !== 1 ? 's' : ''} in voice chat
+          {participantCount} participant{participantCount !== 1 ? 's' : ''} in voice chat
         </span>
       </div>
     </div>
