@@ -17,17 +17,6 @@ const getPomodoroStats = () => {
 };
 
 const PomodoroPage = () => {
-  const pomodoroData = getPomodoroStats();
-  return (
-    <div className="container mx-auto py-8 md:py-12">
-      <h1 className="text-3xl font-bold mb-8 text-center">Pomodoro Hub</h1>
-      {/* Existing Pomodoros Completed chart and timer placeholder below */}
-      {/* ...rest of the page content... */}
-    </div>
-  );
-};
-
-// Old export and contents below removed, replaced with new structure.
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -65,7 +54,7 @@ const PomodoroPage = () => {
         <p className="text-muted-foreground">Timer component will go here.</p>
       </div> */}
 
-     </div>
+    </div>
   );
 };
 
