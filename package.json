@@ -106,5 +106,18 @@
     "vite": "^5.4.1",
     "vite-plugin-pwa": "^1.0.0",
     "vite-plugin-svgr": "^4.3.0"
-  }
+  },
+  "description": "**URL**: https://lovable.dev/projects/640ebf49-65f2-479b-9136-ab177156e350",
+  "main": "eslint.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vikas07-unfiltered/ca-prep-zone.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Vikas07-unfiltered/ca-prep-zone/issues"
+  },
+  "homepage": "https://github.com/Vikas07-unfiltered/ca-prep-zone#readme"
 }
