@@ -51,7 +51,8 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
     toggleMute, 
     leaveCall,
     hasError,
-    isJoining
+    isJoining,
+    errorMessage
   } = useAgoraVoice({ 
     appId: AGORA_APP_ID,
     channel: channel,
@@ -66,11 +67,12 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
     isConnected, 
     hasError, 
     isJoining,
-    retryCount 
+    retryCount,
+    errorMessage 
   });
 
   // Check if Agora App ID is configured (not empty and not the placeholder)
-  const isValidConfig = AGORA_APP_ID && AGORA_APP_ID.length > 0 && !AGORA_APP_ID.includes('your_agora_app_id_here');
+  const isValidConfig = AGORA_APP_ID && AGORA_APP_ID.length === 32;
 
   if (!isVoiceEnabled || !isValidConfig) {
     return (
@@ -104,14 +106,14 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
             ⚠️ Connection issue detected
           </p>
           <p className="text-xs text-orange-700 text-center mb-3">
-            There was a problem with the voice chat connection.
+            {errorMessage || "There was a problem with the voice chat connection."}
           </p>
           <div className="flex gap-2 justify-center">
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
-                console.log('Retrying voice chat connection...');
+                console.log('Retrying voice chat connection...', retryCount + 1);
                 setIsConnected(false);
                 setRetryCount(prev => prev + 1);
                 setTimeout(() => setIsConnected(true), 1000);

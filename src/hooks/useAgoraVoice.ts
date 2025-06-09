@@ -21,6 +21,7 @@ export const useAgoraVoice = ({ appId, channel, token, isConnected }: UseAgoraVo
   const [participantCount, setParticipantCount] = useState(1);
   const [hasError, setHasError] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   
   const clientRef = useRef<IAgoraRTCClient | null>(null);
   const audioTrackRef = useRef<IMicrophoneAudioTrack | null>(null);
@@ -30,6 +31,7 @@ export const useAgoraVoice = ({ appId, channel, token, isConnected }: UseAgoraVo
     if (!isConnected || !appId || !channel) {
       // Reset error state when not connected
       setHasError(false);
+      setErrorMessage("");
       return;
     }
 
@@ -37,21 +39,45 @@ export const useAgoraVoice = ({ appId, channel, token, isConnected }: UseAgoraVo
       try {
         setIsJoining(true);
         setHasError(false);
+        setErrorMessage("");
 
         console.log('Initializing Agora with:', { appId, channel });
 
-        // Create Agora client
-        const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+        // Validate App ID format
+        if (!appId || appId.length !== 32) {
+          throw new Error('Invalid Agora App ID format');
+        }
+
+        // Test network connectivity first
+        try {
+          const response = await fetch('https://api.agora.io/health', { 
+            method: 'GET',
+            mode: 'no-cors',
+            signal: AbortSignal.timeout(5000)
+          });
+          console.log('Agora API health check completed');
+        } catch (networkError) {
+          console.warn('Network connectivity test failed:', networkError);
+          // Continue anyway as no-cors mode might not give us proper response
+        }
+
+        // Create Agora client with better configuration
+        const client = AgoraRTC.createClient({ 
+          mode: "rtc", 
+          codec: "vp8",
+          role: "host" // Explicitly set role
+        });
         clientRef.current = client;
 
-        // Set up event listeners
+        // Set up event listeners with better error handling
         client.on("user-published", async (user, mediaType) => {
           try {
+            console.log("User published:", user.uid, mediaType);
             await client.subscribe(user, mediaType);
             console.log("Subscribe success for user:", user.uid);
             
-            if (mediaType === "audio") {
-              user.audioTrack?.play();
+            if (mediaType === "audio" && user.audioTrack) {
+              user.audioTrack.play();
             }
             
             setParticipantCount(prev => prev + 1);
@@ -74,17 +100,44 @@ export const useAgoraVoice = ({ appId, channel, token, isConnected }: UseAgoraVo
           console.log("Connection state changed:", curState, "from:", revState);
           if (curState === "DISCONNECTED" || curState === "DISCONNECTING") {
             setHasError(true);
+            setErrorMessage("Connection lost to voice chat server");
+          } else if (curState === "CONNECTED") {
+            setHasError(false);
+            setErrorMessage("");
           }
         });
 
-        // Join channel
+        client.on("exception", (evt) => {
+          console.error("Agora exception:", evt);
+          setHasError(true);
+          setErrorMessage(`Voice chat error: ${evt.reason}`);
+        });
+
+        // Check microphone permissions first
+        try {
+          const permissions = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+          if (permissions.state === 'denied') {
+            throw new Error('Microphone permission denied');
+          }
+        } catch (permError) {
+          console.warn('Could not check microphone permission:', permError);
+        }
+
+        // Join channel with timeout
         console.log('Joining channel:', channel);
-        const uid = await client.join(appId, channel, token || null);
+        const joinPromise = client.join(appId, channel, token || null);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Connection timeout')), 10000)
+        );
+        
+        const uid = await Promise.race([joinPromise, timeoutPromise]);
         console.log("Joined Agora channel with UID:", uid);
 
         // Create and publish audio track
         console.log('Creating audio track...');
-        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+          encoderConfig: "music_standard",
+        });
         audioTrackRef.current = audioTrack;
         
         console.log('Publishing audio track...');
@@ -93,10 +146,11 @@ export const useAgoraVoice = ({ appId, channel, token, isConnected }: UseAgoraVo
 
         setIsJoining(false);
         setHasError(false);
+        setErrorMessage("");
         
         toast({
-          title: "Voice Chat Joined",
-          description: "You've successfully joined the voice chat!",
+          title: "Voice Chat Connected",
+          description: "Successfully joined the voice chat!",
         });
 
       } catch (error: any) {
@@ -104,21 +158,29 @@ export const useAgoraVoice = ({ appId, channel, token, isConnected }: UseAgoraVo
         setHasError(true);
         setIsJoining(false);
         
-        let errorMessage = "Failed to connect to voice chat.";
+        let errorMsg = "Failed to connect to voice chat.";
         
         if (error.code === "INVALID_PARAMS") {
-          errorMessage = "Invalid voice chat configuration.";
+          errorMsg = "Invalid voice chat configuration.";
         } else if (error.code === "CAN_NOT_GET_GATEWAY_SERVER") {
-          errorMessage = "Network connection issue. Please check your internet.";
+          errorMsg = "Cannot reach voice chat servers. Please check your internet connection.";
         } else if (error.code === "INVALID_VENDOR_KEY") {
-          errorMessage = "Invalid Agora App ID. Please check configuration.";
+          errorMsg = "Invalid Agora App ID. Voice chat is not properly configured.";
         } else if (error.message?.includes("Permission")) {
-          errorMessage = "Microphone permission denied. Please allow microphone access.";
+          errorMsg = "Microphone permission denied. Please allow microphone access.";
+        } else if (error.message?.includes("timeout")) {
+          errorMsg = "Connection timeout. Please check your internet connection.";
+        } else if (error.message?.includes("Invalid Agora App ID")) {
+          errorMsg = "Voice chat is not properly configured. Please contact support.";
+        } else if (error.code) {
+          errorMsg = `Voice chat error (${error.code}): ${error.message}`;
         }
+        
+        setErrorMessage(errorMsg);
         
         toast({
           title: "Voice Chat Error",
-          description: errorMessage,
+          description: errorMsg,
           variant: "destructive",
         });
       }
@@ -141,6 +203,7 @@ export const useAgoraVoice = ({ appId, channel, token, isConnected }: UseAgoraVo
       setParticipantCount(1);
       setIsMuted(false);
       setHasError(false);
+      setErrorMessage("");
     };
   }, [isConnected, appId, channel, token, toast]);
 
@@ -180,6 +243,7 @@ export const useAgoraVoice = ({ appId, channel, token, isConnected }: UseAgoraVo
       setParticipantCount(1);
       setIsMuted(false);
       setHasError(false);
+      setErrorMessage("");
       
     } catch (error) {
       console.error("Error leaving call:", error);
@@ -192,6 +256,7 @@ export const useAgoraVoice = ({ appId, channel, token, isConnected }: UseAgoraVo
     toggleMute,
     leaveCall,
     hasError,
-    isJoining
+    isJoining,
+    errorMessage
   };
 };
