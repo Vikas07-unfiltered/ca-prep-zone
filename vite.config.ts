@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -16,7 +17,10 @@ export default defineConfig(({ mode }) => ({
     svgr(),
     VitePWA({
       registerType: 'autoUpdate',
-      manifest: require('./public/manifest.json')
+      manifest: require('./public/manifest.json'),
+      workbox: {
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB limit
+      }
     }),
     mode === 'development' &&
     componentTagger(),
