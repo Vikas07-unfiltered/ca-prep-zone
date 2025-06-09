@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -58,8 +59,8 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
 
   console.log('StudyRoomVoice props:', { roomUrl, isVoiceEnabled, isAdmin, channel });
 
-  // Check if Agora App ID is configured
-  const isValidConfig = AGORA_APP_ID && AGORA_APP_ID !== "your_agora_app_id_here";
+  // Check if Agora App ID is configured (not empty and not the placeholder)
+  const isValidConfig = AGORA_APP_ID && AGORA_APP_ID.length > 0 && !AGORA_APP_ID.includes('your_agora_app_id_here');
 
   if (!isVoiceEnabled || !isValidConfig) {
     return (

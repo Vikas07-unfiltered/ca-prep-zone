@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 interface StudyRoom {
@@ -21,6 +22,15 @@ class StudyRoomServiceClass {
   private generateAgoraChannel(roomId: string): string {
     // Generate a clean channel name for Agora from room ID
     return `room_${roomId.replace(/[^a-zA-Z0-9]/g, '')}`;
+  }
+
+  // Helper function to convert Json array to string array
+  private convertParticipants(participants: any): string[] {
+    if (!participants) return [];
+    if (Array.isArray(participants)) {
+      return participants.map(p => String(p));
+    }
+    return [];
   }
 
   async create(roomData: Omit<StudyRoom, 'id' | 'room_code' | 'created_at'>): Promise<StudyRoom> {
@@ -49,7 +59,7 @@ class StudyRoomServiceClass {
       console.log('Study room created successfully:', data);
       return {
         ...data,
-        participants: Array.isArray(data.participants) ? data.participants : []
+        participants: this.convertParticipants(data.participants)
       };
     } catch (error) {
       console.error('Error in StudyRoomService.create:', error);
@@ -71,7 +81,7 @@ class StudyRoomServiceClass {
 
       return (data || []).map(room => ({
         ...room,
-        participants: Array.isArray(room.participants) ? room.participants : []
+        participants: this.convertParticipants(room.participants)
       }));
     } catch (error: any) {
       console.error('Error in StudyRoomService.getAll:', error);
@@ -94,7 +104,7 @@ class StudyRoomServiceClass {
 
       return data ? {
         ...data,
-        participants: Array.isArray(data.participants) ? data.participants : []
+        participants: this.convertParticipants(data.participants)
       } : null;
     } catch (error: any) {
       console.error('Error in StudyRoomService.getRoomByCode:', error);
