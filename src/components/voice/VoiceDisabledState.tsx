@@ -18,10 +18,16 @@ export const VoiceDisabledState: React.FC<VoiceDisabledStateProps> = ({
     return (
       <div className="p-4 text-center text-muted-foreground border-t">
         <AlertCircle className="h-8 w-8 mx-auto mb-2 text-orange-500" />
-        <p className="mb-2">Voice chat is not available for this room.</p>
-        <p className="text-sm text-muted-foreground">
-          Invalid or missing voice chat configuration.
+        <p className="mb-2">Voice chat is not configured.</p>
+        <p className="text-sm text-muted-foreground mb-2">
+          Please add your Agora.io App ID to enable voice chat.
         </p>
+        <div className="text-xs text-muted-foreground bg-gray-50 p-2 rounded border">
+          <p>To configure voice chat:</p>
+          <p>1. Sign up at agora.io</p>
+          <p>2. Get your App ID from the console</p>
+          <p>3. Replace 'your_agora_app_id_here' in StudyRoomVoice.tsx</p>
+        </div>
         {isAdmin && (
           <Button variant="outline" onClick={() => onToggleVoice(false)} className="mt-2">
             Disable Voice Chat

@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useDailyVoice } from "@/hooks/useDailyVoice";
+import { useAgoraVoice } from "@/hooks/useAgoraVoice";
 import { useMicrophonePermission } from "@/hooks/useMicrophonePermission";
 import { VoiceControls } from "./VoiceControls";
 import { VoiceConnectionInterface } from "./VoiceConnectionInterface";
@@ -17,13 +17,17 @@ interface StudyRoomVoiceProps {
   onSwitchToTextChat?: () => void;
 }
 
-const isValidDailyUrl = (url: string): boolean => {
-  if (!url) return false;
+// Agora.io App ID - This is a demo App ID, replace with your own
+const AGORA_APP_ID = "your_agora_app_id_here";
+
+const extractChannelFromUrl = (url: string): string => {
+  // Extract channel name from room URL or use room ID
   try {
     const urlObj = new URL(url);
-    return urlObj.hostname.includes('daily.co');
+    return urlObj.pathname.split('/').pop() || 'default-channel';
   } catch {
-    return false;
+    // If not a valid URL, use it as channel name directly
+    return url.replace(/[^a-zA-Z0-9]/g, '') || 'default-channel';
   }
 };
 
@@ -36,36 +40,39 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
 }) => {
   const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
-  const [isJoining, setIsJoining] = useState(false);
   const microphonePermission = useMicrophonePermission();
+  
+  const channel = extractChannelFromUrl(roomUrl);
   
   const { 
     isMuted, 
     participantCount, 
-    containerRef, 
     toggleMute, 
     leaveCall,
-    hasError
-  } = useDailyVoice({ 
-    roomUrl, 
+    hasError,
+    isJoining
+  } = useAgoraVoice({ 
+    appId: AGORA_APP_ID,
+    channel: channel,
     isConnected 
   });
 
-  console.log('StudyRoomVoice props:', { roomUrl, isVoiceEnabled, isAdmin });
+  console.log('StudyRoomVoice props:', { roomUrl, isVoiceEnabled, isAdmin, channel });
 
-  const isValidUrl = isValidDailyUrl(roomUrl);
+  // Check if Agora App ID is configured
+  const isValidConfig = AGORA_APP_ID && AGORA_APP_ID !== "your_agora_app_id_here";
 
-  if (!isVoiceEnabled || !isValidUrl) {
+  if (!isVoiceEnabled || !isValidConfig) {
     return (
       <VoiceDisabledState
         isAdmin={isAdmin}
-        isValidUrl={isValidUrl}
+        isValidUrl={isValidConfig}
         onToggleVoice={onToggleVoice}
       />
     );
   }
 
-  // Show service unavailable message if there's a Daily.co error
+  // Show service unavailable message if there's an Agora error
   if (hasError && isConnected) {
     return (
       <div className="p-4 border-t">
@@ -98,26 +105,13 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
       return;
     }
 
-    setIsJoining(true);
-    console.log('Attempting to join voice chat');
-    
-    try {
-      setIsConnected(true);
-    } catch (error) {
-      console.error('Error joining call:', error);
-      setIsJoining(false);
-      toast({
-        title: "Connection Failed",
-        description: "Could not join voice chat. Please check your internet connection and try again.",
-        variant: "destructive",
-      });
-    }
+    console.log('Attempting to join voice chat with channel:', channel);
+    setIsConnected(true);
   };
 
-  const handleLeaveCall = () => {
-    leaveCall();
+  const handleLeaveCall = async () => {
+    await leaveCall();
     setIsConnected(false);
-    setIsJoining(false);
   };
 
   if (!isConnected) {
@@ -159,7 +153,11 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
         )}
       </div>
       
-      <div ref={containerRef} className="mb-3 rounded-lg overflow-hidden bg-gray-100" />
+      <div className="mb-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+        <p className="text-sm text-green-800 text-center">
+          🎤 Connected to voice chat
+        </p>
+      </div>
       
       <VoiceControls
         isMuted={isMuted}

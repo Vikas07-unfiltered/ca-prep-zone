@@ -1,167 +1,200 @@
+import { supabase } from "@/integrations/supabase/client";
 
-import { supabase } from '@/integrations/supabase/client';
-
-export interface StudyRoom {
+interface StudyRoom {
   id?: string;
-  name: string;
-  description?: string;
-  ca_level: string;
-  created_by?: string;
-  participants?: string[];
   created_at?: string;
+  created_by: string;
+  name: string;
+  description: string;
+  ca_level: string;
   room_code?: number;
+  participants: string[];
   daily_room_url?: string;
   voice_enabled?: boolean;
 }
 
-// Helper function to safely convert Json to string array
-function jsonToStringArray(json: any): string[] {
-  if (Array.isArray(json)) {
-    return json.filter(item => typeof item === 'string');
+class StudyRoomServiceClass {
+  private generateRoomCode(): number {
+    return Math.floor(100000 + Math.random() * 900000);
   }
-  return [];
-}
 
-// Helper function to convert database row to StudyRoom
-function mapDbRowToStudyRoom(row: any): StudyRoom {
-  return {
-    ...row,
-    participants: jsonToStringArray(row.participants)
-  };
-}
-
-async function generateUniqueRoomCode(): Promise<number> {
-  let code: number;
-  let exists = true;
-  while (exists) {
-    code = Math.floor(100000 + Math.random() * 900000);
-    const { data } = await supabase.from('study_rooms').select('id').eq('room_code', code).single();
-    exists = !!data;
+  private generateAgoraChannel(roomId: string): string {
+    // Generate a clean channel name for Agora from room ID
+    return `room_${roomId.replace(/[^a-zA-Z0-9]/g, '')}`;
   }
-  return code!;
-}
 
-async function createDailyRoom(roomName: string): Promise<string | null> {
-  try {
-    console.log('Creating Daily.co room for:', roomName);
-    const { data, error } = await supabase.functions.invoke('create-daily-room', {
-      body: { roomName }
-    });
-
-    if (error) {
-      console.error('Error creating Daily.co room:', error);
-      throw new Error(`Daily.co room creation failed: ${error.message}`);
-    }
-
-    if (!data?.url) {
-      console.error('No URL returned from Daily.co room creation');
-      throw new Error('Daily.co room creation returned no URL');
-    }
-
-    console.log('Daily.co room created successfully:', data.url);
-    return data.url;
-  } catch (error) {
-    console.error('Error calling create-daily-room function:', error);
-    throw error;
-  }
-}
-
-export const StudyRoomService = {
-  async getAll(): Promise<StudyRoom[]> {
-    const { data, error } = await supabase.from('study_rooms')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data ? data.map(mapDbRowToStudyRoom) : [];
-  },
-
-  async create(room: Omit<StudyRoom, 'id' | 'created_at' | 'room_code'>): Promise<StudyRoom> {
-    const room_code = await generateUniqueRoomCode();
+  async create(roomData: Omit<StudyRoom, 'id' | 'room_code' | 'created_at'>): Promise<StudyRoom> {
+    const roomCode = this.generateRoomCode();
     
-    // Create Daily.co room first - if this fails, don't create the study room
-    let daily_room_url: string | null = null;
     try {
-      daily_room_url = await createDailyRoom(`studyroom-${room_code}`);
-      if (!daily_room_url) {
-        throw new Error('Failed to create Daily.co room - no URL returned');
+      const { data, error } = await supabase
+        .from('study_rooms')
+        .insert([
+          {
+            ...roomData,
+            room_code: roomCode,
+            voice_enabled: true,
+            // Store Agora channel name instead of Daily.co URL
+            daily_room_url: this.generateAgoraChannel(roomCode.toString())
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating study room:', error);
+        throw new Error(error.message);
+      }
+
+      console.log('Study room created successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('Error in StudyRoomService.create:', error);
+      throw error;
+    }
+  }
+
+  async getAll(): Promise<StudyRoom[]> {
+    try {
+      const { data, error } = await supabase
+        .from('study_rooms')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching study rooms:', error);
+        throw new Error(error.message);
+      }
+
+      return data || [];
+    } catch (error: any) {
+      console.error('Error in StudyRoomService.getAll:', error);
+      throw error;
+    }
+  }
+
+  async getRoomByCode(roomCode: number): Promise<StudyRoom | null> {
+    try {
+      const { data, error } = await supabase
+        .from('study_rooms')
+        .select('*')
+        .eq('room_code', roomCode)
+        .single();
+
+      if (error) {
+        console.error('Error fetching study room by code:', error);
+        return null;
+      }
+
+      return data || null;
+    } catch (error: any) {
+      console.error('Error in StudyRoomService.getRoomByCode:', error);
+      throw error;
+    }
+  }
+
+  async joinRoom(roomCode: number, userId: string): Promise<void> {
+    try {
+      // Get the room
+      const room = await this.getRoomByCode(roomCode);
+      if (!room) {
+        throw new Error('Room not found');
+      }
+
+      // Check if the user is already in the room
+      if (room.participants.includes(userId)) {
+        console.log('User already in the room');
+        return;
+      }
+
+      // Add the user to the participants array
+      const updatedParticipants = [...room.participants, userId];
+
+      // Update the room in the database
+      const { error } = await supabase
+        .from('study_rooms')
+        .update({ participants: updatedParticipants })
+        .eq('room_code', roomCode);
+
+      if (error) {
+        console.error('Error joining study room:', error);
+        throw new Error(error.message);
       }
     } catch (error: any) {
-      console.error('Failed to create Daily.co room:', error);
-      throw new Error(`Voice chat setup failed: ${error.message}`);
+      console.error('Error in StudyRoomService.joinRoom:', error);
+      throw error;
     }
-    
-    const { data, error } = await supabase.from('study_rooms')
-      .insert({ 
-        ...room, 
-        room_code,
-        daily_room_url,
-        voice_enabled: true // Enable voice by default
-      })
-      .select()
-      .single();
-    if (error) throw error;
-    return mapDbRowToStudyRoom(data);
-  },
+  }
 
-  async joinRoom(room_code: number, participant: string): Promise<void> {
-    // Fetch the room and its participants
-    const { data: roomData, error: roomError } = await supabase.from('study_rooms')
-      .select('participants')
-      .eq('room_code', room_code)
-      .single();
-    if (roomError) throw roomError;
-    
-    const participants = jsonToStringArray(roomData.participants);
+  async leaveRoom(roomCode: number, userId: string): Promise<void> {
+    try {
+      // Get the room
+      const room = await this.getRoomByCode(roomCode);
+      if (!room) {
+        throw new Error('Room not found');
+      }
 
-    // Limit: Only 50 users can join one room
-    if (participants.length >= 50 && !participants.includes(participant)) {
-      throw new Error('This room already has 50 participants.');
+      // Check if the user is in the room
+      if (!room.participants.includes(userId)) {
+        console.log('User not in the room');
+        return;
+      }
+
+      // Remove the user from the participants array
+      const updatedParticipants = room.participants.filter(
+        (participant) => participant !== userId
+      );
+
+      // Update the room in the database
+      const { error } = await supabase
+        .from('study_rooms')
+        .update({ participants: updatedParticipants })
+        .eq('room_code', roomCode);
+
+      if (error) {
+        console.error('Error leaving study room:', error);
+        throw new Error(error.message);
+      }
+    } catch (error: any) {
+      console.error('Error in StudyRoomService.leaveRoom:', error);
+      throw error;
     }
-
-    // Limit: One user can join only 5 rooms
-    const { count: userRoomCount, error: userRoomError } = await supabase.from('study_rooms')
-      .select('id', { count: 'exact', head: true })
-      .contains('participants', [participant]);
-    if (userRoomError) throw userRoomError;
-    if (userRoomCount >= 5 && !participants.includes(participant)) {
-      throw new Error('You can only join up to 5 rooms.');
-    }
-
-    if (!participants.includes(participant)) {
-      participants.push(participant);
-      await supabase.from('study_rooms')
-        .update({ participants })
-        .eq('room_code', room_code);
-    }
-  },
-
-  async getRoomByCode(room_code: number): Promise<StudyRoom | null> {
-    const { data, error } = await supabase.from('study_rooms')
-      .select('*')
-      .eq('room_code', room_code)
-      .single();
-    if (error) return null;
-    return data ? mapDbRowToStudyRoom(data) : null;
-  },
+  }
 
   async deleteRoom(roomId: string): Promise<void> {
-    const { error } = await supabase.from('study_rooms')
-      .delete()
-      .eq('id', roomId);
-    if (error) throw error;
-  },
+    try {
+      const { error } = await supabase
+        .from('study_rooms')
+        .delete()
+        .eq('id', roomId);
 
-  async updateRoom(roomId: string, updates: Partial<StudyRoom>): Promise<void> {
-    const { error } = await supabase.from('study_rooms')
-      .update(updates)
-      .eq('id', roomId);
-    if (error) throw error;
-  },
+      if (error) {
+        console.error('Error deleting study room:', error);
+        throw new Error(error.message);
+      }
+    } catch (error: any) {
+      console.error('Error in StudyRoomService.deleteRoom:', error);
+      throw error;
+    }
+  }
 
   async toggleVoiceChat(roomId: string, enabled: boolean): Promise<void> {
-    const { error } = await supabase.from('study_rooms')
-      .update({ voice_enabled: enabled })
-      .eq('id', roomId);
-    if (error) throw error;
+    try {
+      const { error } = await supabase
+        .from('study_rooms')
+        .update({ voice_enabled: enabled })
+        .eq('id', roomId);
+  
+      if (error) {
+        console.error('Error toggling voice chat:', error);
+        throw new Error(error.message);
+      }
+    } catch (error: any) {
+      console.error('Error in StudyRoomService.toggleVoiceChat:', error);
+      throw error;
+    }
   }
-};
+}
+
+export const StudyRoomService = new StudyRoomServiceClass();
+export type { StudyRoom };

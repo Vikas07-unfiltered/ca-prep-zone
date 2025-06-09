@@ -248,7 +248,8 @@ const StudyRooms = () => {
 
   // Helper function to check if voice chat is available
   const isVoiceChatAvailable = (room: StudyRoom) => {
-    return room.daily_room_url && room.daily_room_url.includes('daily.co');
+    // For Agora, we just need the room to have voice_enabled and a channel identifier
+    return room.voice_enabled && room.daily_room_url;
   };
 
   return (
@@ -521,12 +522,10 @@ const StudyRooms = () => {
                           <Users className="h-4 w-4 mr-2" />
                           Participants
                         </TabsTrigger>
-                        {isVoiceChatAvailable(activeRoomData) && (
-                          <TabsTrigger value="voice">
-                            <span role="img" aria-label="Voice Chat" className="h-4 w-4 mr-2">🔊</span>
-                            Voice Chat
-                          </TabsTrigger>
-                        )}
+                        <TabsTrigger value="voice">
+                          <span role="img" aria-label="Voice Chat" className="h-4 w-4 mr-2">🔊</span>
+                          Voice Chat
+                        </TabsTrigger>
                       </TabsList>
                       
                       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -636,31 +635,19 @@ const StudyRooms = () => {
                         </TabsContent>
                       </motion.div>
                       
-                      {isVoiceChatAvailable(activeRoomData) ? (
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                          <TabsContent value="voice">
-                            <VoiceErrorBoundary>
-                              <StudyRoomVoice
-                                roomUrl={activeRoomData.daily_room_url!}
-                                isVoiceEnabled={activeRoomData.voice_enabled ?? true}
-                                isAdmin={user?.id === activeRoomData.created_by}
-                                onToggleVoice={handleToggleVoice}
-                                onSwitchToTextChat={handleSwitchToTextChat}
-                              />
-                            </VoiceErrorBoundary>
-                          </TabsContent>
-                        </motion.div>
-                      ) : (
+                      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
                         <TabsContent value="voice">
-                          <div className="p-4 text-center text-muted-foreground border rounded">
-                            <AlertCircle className="h-8 w-8 mx-auto mb-2 text-orange-500" />
-                            <p className="mb-2">Voice chat is not available for this room.</p>
-                            <p className="text-sm">
-                              This room was created without voice chat functionality.
-                            </p>
-                          </div>
+                          <VoiceErrorBoundary>
+                            <StudyRoomVoice
+                              roomUrl={activeRoomData.daily_room_url || activeRoomData.id!}
+                              isVoiceEnabled={activeRoomData.voice_enabled ?? true}
+                              isAdmin={user?.id === activeRoomData.created_by}
+                              onToggleVoice={handleToggleVoice}
+                              onSwitchToTextChat={handleSwitchToTextChat}
+                            />
+                          </VoiceErrorBoundary>
                         </TabsContent>
-                      )}
+                      </motion.div>
                     </Tabs>
                   </CardContent>
                 </Card>
