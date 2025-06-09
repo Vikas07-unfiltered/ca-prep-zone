@@ -40,6 +40,7 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
 }) => {
   const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const microphonePermission = useMicrophonePermission();
   
   const channel = extractChannelFromUrl(roomUrl);
@@ -57,7 +58,16 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
     isConnected 
   });
 
-  console.log('StudyRoomVoice props:', { roomUrl, isVoiceEnabled, isAdmin, channel });
+  console.log('StudyRoomVoice state:', { 
+    roomUrl, 
+    isVoiceEnabled, 
+    isAdmin, 
+    channel, 
+    isConnected, 
+    hasError, 
+    isJoining,
+    retryCount 
+  });
 
   // Check if Agora App ID is configured (not empty and not the placeholder)
   const isValidConfig = AGORA_APP_ID && AGORA_APP_ID.length > 0 && !AGORA_APP_ID.includes('your_agora_app_id_here');
@@ -88,9 +98,38 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
             </Button>
           )}
         </div>
-        <VoiceServiceUnavailable 
-          onBackToChat={() => onSwitchToTextChat && onSwitchToTextChat()}
-        />
+        
+        <div className="mb-3 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+          <p className="text-sm text-orange-800 text-center mb-2">
+            ⚠️ Connection issue detected
+          </p>
+          <p className="text-xs text-orange-700 text-center mb-3">
+            There was a problem with the voice chat connection.
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                console.log('Retrying voice chat connection...');
+                setIsConnected(false);
+                setRetryCount(prev => prev + 1);
+                setTimeout(() => setIsConnected(true), 1000);
+              }}
+            >
+              Retry Connection
+            </Button>
+            {onSwitchToTextChat && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onSwitchToTextChat}
+              >
+                Switch to Text Chat
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
@@ -112,6 +151,7 @@ export const StudyRoomVoice: React.FC<StudyRoomVoiceProps> = ({
   const handleLeaveCall = async () => {
     await leaveCall();
     setIsConnected(false);
+    setRetryCount(0);
   };
 
   if (!isConnected) {
