@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -17,8 +16,8 @@ interface StudyRoomVoiceProps {
   onSwitchToTextChat?: () => void;
 }
 
-// Agora.io App ID - This is a demo App ID, replace with your own
-const AGORA_APP_ID = "your_agora_app_id_here";
+// Agora.io App ID - Updated with your App ID
+const AGORA_APP_ID = "d997a2560ca7443fa3d656cd679e9d5d";
 
 const extractChannelFromUrl = (url: string): string => {
   // Extract channel name from room URL or use room ID

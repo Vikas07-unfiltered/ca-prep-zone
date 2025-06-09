@@ -47,7 +47,10 @@ class StudyRoomServiceClass {
       }
 
       console.log('Study room created successfully:', data);
-      return data;
+      return {
+        ...data,
+        participants: Array.isArray(data.participants) ? data.participants : []
+      };
     } catch (error) {
       console.error('Error in StudyRoomService.create:', error);
       throw error;
@@ -66,7 +69,10 @@ class StudyRoomServiceClass {
         throw new Error(error.message);
       }
 
-      return data || [];
+      return (data || []).map(room => ({
+        ...room,
+        participants: Array.isArray(room.participants) ? room.participants : []
+      }));
     } catch (error: any) {
       console.error('Error in StudyRoomService.getAll:', error);
       throw error;
@@ -86,7 +92,10 @@ class StudyRoomServiceClass {
         return null;
       }
 
-      return data || null;
+      return data ? {
+        ...data,
+        participants: Array.isArray(data.participants) ? data.participants : []
+      } : null;
     } catch (error: any) {
       console.error('Error in StudyRoomService.getRoomByCode:', error);
       throw error;
