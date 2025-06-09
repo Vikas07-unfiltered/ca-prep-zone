@@ -376,14 +376,13 @@ const StudyRooms = () => {
                   ) : (
                     <div className="space-y-4">
                       {filteredRooms.map((room, i) => (
-                        <ScrollReveal delay={0.2 + i * 0.05}>
-                          <motion.div
-                            key={room.id}
-                            whileHover={{ scale: 1.02, boxShadow: "0 8px 24px rgba(0,0,0,0.08)" }}
-                            transition={{ type: "spring", stiffness: 300 }}
-                            className="border rounded-lg p-4 hover:border-primary transition-all duration-200 cursor-pointer"
-                            onClick={() => setActiveRoom(room.id)}
-                          >
+  <ScrollReveal key={room.id} delay={0.2 + i * 0.05}>
+    <motion.div
+      whileHover={{ scale: 1.02, boxShadow: "0 8px 24px rgba(0,0,0,0.08)" }}
+      transition={{ type: "spring", stiffness: 300 }}
+      className="border rounded-lg p-4 hover:border-primary transition-all duration-200 cursor-pointer"
+      onClick={() => setActiveRoom(room.id)}
+    >
                             <div className="flex justify-between items-start mb-2">
                               <div>
                                 <h3 className="font-medium">{room.name}</h3>
@@ -544,23 +543,11 @@ const StudyRooms = () => {
                                 </div>
                               ) : (
                                 <div className="space-y-4">
-                                  {messages.map((message) => (
-                                    <motion.div
-                                      key={message.id}
-                                      initial={{ opacity: 0, x: 30 }}
-                                      animate={{ opacity: 1, x: 0 }}
-                                      transition={{ duration: 0.3 }}
-                                      className={`flex gap-3 ${
-                                        message.sender === user?.id ? "justify-end" : ""
-                                      }`}
-                                    >
-                                      {message.sender !== user?.id && (
-                                        <Avatar className="h-8 w-8">
-                                          <AvatarFallback className="text-xs">
-                                            {message.sender.charAt(0)}
-                                          </AvatarFallback>
-                                        </Avatar>
-                                      )}
+                                  {messages.map((message, i) => (
+                                    <motion.div key={message.id || i} className="flex gap-3 items-end">
+                                      <Avatar className="h-8 w-8">
+                                        <AvatarFallback>{typeof message.sender === 'string' ? message.sender.charAt(0) : '?'}</AvatarFallback>
+                                      </Avatar>
                                       <div
                                         className={`rounded-lg p-3 max-w-[80%] ${
                                           message.sender === user?.id

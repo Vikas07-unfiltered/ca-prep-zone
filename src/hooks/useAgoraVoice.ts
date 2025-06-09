@@ -110,7 +110,7 @@ export const useAgoraVoice = ({ appId, channel, token, isConnected }: UseAgoraVo
         client.on("exception", (evt) => {
           console.error("Agora exception:", evt);
           setHasError(true);
-          setErrorMessage(`Voice chat error: ${evt.reason}`);
+          setErrorMessage(`Voice chat error: ${evt.msg}`);
         });
 
         // Check microphone permissions first
@@ -125,12 +125,23 @@ export const useAgoraVoice = ({ appId, channel, token, isConnected }: UseAgoraVo
 
         // Join channel with timeout
         console.log('Joining channel:', channel);
-        const joinPromise = client.join(appId, channel, token || null);
+        let rtcToken = token;
+        const uid = String(Math.floor(Math.random() * 1000000)); // Generate random UID for now
+        if (!rtcToken) {
+          try {
+            const res = await fetch(`http://localhost:5000/rtc-token?channel=${encodeURIComponent(channel)}&uid=${uid}`);
+            const data = await res.json();
+            rtcToken = data.token;
+            if (!rtcToken) throw new Error('Failed to fetch Agora RTC token');
+          } catch (err) {
+            throw new Error('Could not fetch Agora RTC token from server.');
+          }
+        }
+        const joinPromise = client.join(appId, channel, rtcToken, uid);
         const timeoutPromise = new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Connection timeout')), 10000)
         );
-        
-        const uid = await Promise.race([joinPromise, timeoutPromise]);
+        await Promise.race([joinPromise, timeoutPromise]);
         console.log("Joined Agora channel with UID:", uid);
 
         // Create and publish audio track

@@ -23,7 +23,7 @@ import TermsOfService from "./pages/TermsOfService";
 import HelpCenter from "./pages/HelpCenter";
 import ContactUs from "./pages/ContactUs";
 import StudyAnalysisPage from "./pages/StudyAnalysis"; // Added import for StudyAnalysisPage
-import PomodoroPage from "./pages/PomodoroPage"; // Added import for PomodoroPage
+import { PomodoroPage } from "./pages/PomodoroPage.tsx"; // Added import for PomodoroPage
 import AchievementsLeaderboard from "./pages/AchievementsLeaderboard"; // Added import for AchievementsLeaderboard
 import { StrictMode } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";

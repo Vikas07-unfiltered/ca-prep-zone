@@ -17,7 +17,7 @@ const getPomodoroStats = () => {
   return stats;
 };
 
-const PomodoroPage: React.FC = () => {
+export const PomodoroPage: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -51,4 +51,4 @@ const PomodoroPage: React.FC = () => {
   );
 };
 
-export default PomodoroPage;
+
