@@ -40,10 +40,39 @@ const StudyRooms = () => {
   const [creatorName, setCreatorName] = useState<string>("");
   const [selectedLevel, setSelectedLevel] = useState("All");
 
+  // Pomodoro sessions state
+  type PomodoroSession = {
+    id: string;
+    user_id: string;
+    subject: string;
+    start_time: string;
+    end_time: string;
+    room_id: string;
+  };
+  const [pomodoroSessions, setPomodoroSessions] = useState<PomodoroSession[]>([]);
+
   // Place activeRoomData here so it's available for useEffect
   const activeRoomData = activeRoom
     ? studyRooms.find(room => room.id === activeRoom)
     : null;
+
+  // Fetch active Pomodoro sessions for the current room
+  useEffect(() => {
+    if (!activeRoom) return;
+    const fetchPomodoros = async () => {
+      const now = new Date().toISOString();
+      const { data, error } = await supabase
+        .from("pomodoro_sessions")
+        .select("*")
+        .eq("room_id", activeRoom)
+        .gt("end_time", now);
+      if (!error && data) setPomodoroSessions(data);
+    };
+    fetchPomodoros();
+    const interval = setInterval(fetchPomodoros, 30000);
+    return () => clearInterval(interval);
+  }, [activeRoom]);
+
 
   // Fetch authenticated user
   useEffect(() => {
@@ -591,26 +620,37 @@ const StudyRooms = () => {
                             <CardContent className="py-4">
                               <h3 className="font-medium mb-4">Room Participants</h3>
                               <div className="space-y-2">
-                                {activeRoomData.participants.map((participant, i) => (
-                                  <div
-                                    key={i}
-                                    className="flex items-center gap-3 p-2 rounded-md hover:bg-accent"
-                                  >
-                                    <Avatar className="h-8 w-8">
-                                      <AvatarFallback>
-                                        {participant.charAt(0)}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                      <p className="font-medium">
-                                        {participant === user?.id ? "You" : participant}
-                                      </p>
-                                      {participant === activeRoomData.created_by && (
-                                        <p className="text-xs text-muted-foreground">Room Creator</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
+                                {activeRoomData.participants.map((participant, i) => {
+  const pomodoro = pomodoroSessions.find(
+    (p) => p.user_id === participant
+  );
+  return (
+    <div
+      key={i}
+      className="flex items-center gap-3 p-2 rounded-md hover:bg-accent"
+    >
+      <Avatar className="h-8 w-8">
+        <AvatarFallback>
+          {participant.charAt(0)}
+        </AvatarFallback>
+      </Avatar>
+      <div>
+        <p className="font-medium">
+          {participant === user?.id ? "You" : participant}
+        </p>
+        {participant === activeRoomData.created_by && (
+          <p className="text-xs text-muted-foreground">Room Creator</p>
+        )}
+        {pomodoro && (
+          <p className="text-xs text-green-600">
+            Pomodoro: {pomodoro.subject} <br />
+            Time left: {Math.max(0, Math.round((new Date(pomodoro.end_time).getTime() - Date.now()) / 60000))} min
+          </p>
+        )}
+      </div>
+    </div>
+  );
+})}
                               </div>
                             </CardContent>
                             <CardFooter>

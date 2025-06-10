@@ -2,9 +2,12 @@
 
 import { Doodle } from "@/components/ui/Doodle";
 
-import { BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend, ResponsiveContainer } from "recharts";
-
 import * as React from "react";
+
+// Import charts and table from StudyAnalysis
+import StudyBarChart from "./StudyAnalysis";
+import StudyPieChart from "./StudyAnalysis";
+import StudyAnalysisTable from "./StudyAnalysis";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +21,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { Chat } from "@/components/Chat";
+import { getTotalTimePerSubject, formatMinutes } from '@/services/StudyAnalysisService';
 
 // Utility to format hours
 function formatHours(hours: number) {
@@ -58,6 +62,45 @@ function getRandomQuote() {
 }
 
 const Planner = () => {
+  // --- Aggregated subject totals from both study_sessions & pomodoro_sessions ---
+  const { user } = useAuth();
+  const [subjectTotals, setSubjectTotals] = useState<Record<string, number>>({});
+  const [totalsLoading, setTotalsLoading] = useState(false);
+
+  // Date filter state
+  const [filterPreset, setFilterPreset] = useState<'all'|'week'|'month'|'custom'>('all');
+  const [customRange, setCustomRange] = useState<{start: Date|null, end: Date|null}>({start: null, end: null});
+  const [dateRange, setDateRange] = useState<{start: Date|null, end: Date|null}>({start: null, end: null});
+
+  // Compute date range based on preset
+  useEffect(() => {
+    const now = new Date();
+    let start: Date|null = null, end: Date|null = null;
+    if (filterPreset === 'week') {
+      const day = now.getDay();
+      start = new Date(now);
+      start.setDate(now.getDate() - day + (day === 0 ? -6 : 1)); // Monday
+      start.setHours(0,0,0,0);
+      end = new Date(now);
+      end.setDate(start.getDate() + 6);
+      end.setHours(23,59,59,999);
+    } else if (filterPreset === 'month') {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    } else if (filterPreset === 'custom' && customRange.start && customRange.end) {
+      start = customRange.start;
+      end = customRange.end;
+    }
+    setDateRange({ start, end });
+  }, [filterPreset, customRange]);
+
+  useEffect(() => {
+    if (!user) return;
+    setTotalsLoading(true);
+    getTotalTimePerSubject(user.id, dateRange.start ?? undefined, dateRange.end ?? undefined)
+      .then(setSubjectTotals)
+      .finally(() => setTotalsLoading(false));
+  }, [user, dateRange]);
   // Always scroll to top when Planner mounts
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -75,8 +118,6 @@ const Planner = () => {
   const [studySessions, setStudySessions] = useState<StudySession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [sessionsError, setSessionsError] = useState<string | null>(null);
-
-  const { user } = useAuth();
 
   // Load sessions from Supabase on mount
   useEffect(() => {
@@ -288,7 +329,49 @@ const Planner = () => {
   const subjectHours = getHoursPerSubject();
 
   return (
-    <>
+    <div className="space-y-8">
+      {/* Date Filter Controls */}
+      <div className="mb-4 flex items-center gap-4 flex-wrap">
+        <label>Date Range:</label>
+        <Select value={filterPreset} onValueChange={v => setFilterPreset(v as any)}>
+          <SelectTrigger className="w-32">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Time</SelectItem>
+            <SelectItem value="week">This Week</SelectItem>
+            <SelectItem value="month">This Month</SelectItem>
+            <SelectItem value="custom">Custom</SelectItem>
+          </SelectContent>
+        </Select>
+        {filterPreset === 'custom' && (
+          <>
+            <Label>From:</Label>
+            <Input type="date" value={customRange.start ? customRange.start.toISOString().slice(0,10) : ''} onChange={e => setCustomRange({ ...customRange, start: e.target.value ? new Date(e.target.value) : null })} />
+            <Label>To:</Label>
+            <Input type="date" value={customRange.end ? customRange.end.toISOString().slice(0,10) : ''} onChange={e => setCustomRange({ ...customRange, end: e.target.value ? new Date(e.target.value) : null })} />
+          </>
+        )}
+      </div>
+
+      {/* Study Bar Chart */}
+      <div>
+        <h3 className="font-semibold mb-2">Study Time by Subject</h3>
+        <StudyBarChart studySessions={studySessions} />
+      </div>
+
+      {/* Study Pie Chart */}
+      <div>
+        <h3 className="font-semibold mb-2">Study Time Distribution</h3>
+        <StudyPieChart studySessions={studySessions} />
+      </div>
+
+      {/* Study Analysis Table */}
+      <div>
+        <h3 className="font-semibold mb-2">Study Time Table</h3>
+        <StudyAnalysisTable studySessions={studySessions} />
+      </div>
+
       <div className="relative">
         <div className="container py-8 md:py-12">
           <ScrollReveal>
@@ -513,161 +596,10 @@ const Planner = () => {
       <div className="fixed bottom-8 right-8 z-50">
         <Doodle name="book-light" className="w-36 h-36 drop-shadow-xl transition-all duration-500" on={bulbOn} />
       </div>
-
-  </>
+    </div>
   );
 };
 
-// --- Study Analysis Table Component ---
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import {
-  ChartContainer,
-  // ChartTooltip, ChartTooltipContent, // Not needed for simple charts
-} from "@/components/ui/chart";
-
-
-// --- StudyBarChart ---
-const StudyBarChart: React.FC<{ studySessions: StudySession[] }> = ({ studySessions }) => {
-  // Aggregate hours per subject
-  const data = React.useMemo(() => {
-    const map: Record<string, number> = {};
-    studySessions.forEach(s => {
-      const [startH, startM] = s.startTime.split(":").map(Number);
-      const [endH, endM] = s.endTime.split(":").map(Number);
-      const duration = (endH + endM / 60) - (startH + startM / 60);
-      map[s.subject] = (map[s.subject] || 0) + (duration > 0 ? duration : 0);
-    });
-    return Object.entries(map).map(([subject, hours]) => ({ subject, hours }));
-  }, [studySessions]);
-  if (data.length === 0) return <div className="text-muted-foreground">No data</div>;
-  return (
-    <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={data} margin={{ top: 8, right: 24, left: 8, bottom: 24 }}>
-        <XAxis dataKey="subject" />
-        <YAxis label={{ value: "Hours", angle: -90, position: "insideLeft" }} />
-        <Tooltip />
-        <Legend />
-        <Bar dataKey="hours" fill="#6366f1" radius={[4, 4, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-};
-
-// --- StudyPieChart ---
-const COLORS = ["#6366f1", "#f59e42", "#10b981", "#ef4444", "#a855f7", "#fbbf24"];
-const StudyPieChart: React.FC<{ studySessions: StudySession[] }> = ({ studySessions }) => {
-  const data = React.useMemo(() => {
-    const map: Record<string, number> = {};
-    studySessions.forEach(s => {
-      const [startH, startM] = s.startTime.split(":").map(Number);
-      const [endH, endM] = s.endTime.split(":").map(Number);
-      const duration = (endH + endM / 60) - (startH + startM / 60);
-      map[s.subject] = (map[s.subject] || 0) + (duration > 0 ? duration : 0);
-    });
-    return Object.entries(map).map(([subject, value]) => ({ subject, value }));
-  }, [studySessions]);
-  if (data.length === 0) return <div className="text-muted-foreground">No data</div>;
-  return (
-    <ResponsiveContainer width="100%" height={300}>
-      <PieChart>
-        <Pie data={data} dataKey="value" nameKey="subject" cx="50%" cy="50%" outerRadius={100} label>
-          {data.map((entry, idx) => (
-            <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
-          ))}
-        </Pie>
-        <Tooltip />
-        <Legend />
-      </PieChart>
-    </ResponsiveContainer>
-  );
-};
-
-// --- QuizPerformanceTable ---
-interface QuizSession {
-  id: string;
-  subject: string;
-  score: number;
-  timeTaken: number; // minutes
-  date: string; // ISO
-}
-// TODO: Fetch quizSessions from Supabase or backend
-// Example setup (empty by default, to be filled with real data)
-// You can setQuizSessions from an API call in a useEffect
-// (Moved inside Planner component below)
-
-const QuizPerformanceTable: React.FC<{ quizSessions: QuizSession[] }> = ({ quizSessions }) => {
-  if (!quizSessions.length) return <div className="text-muted-foreground">No quiz data yet.</div>;
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Subject</TableHead>
-          <TableHead>Score</TableHead>
-          <TableHead>Time Taken (min)</TableHead>
-          <TableHead>Date</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {quizSessions.map(q => (
-          <TableRow key={q.id}>
-            <TableCell>{q.subject}</TableCell>
-            <TableCell>{q.score}</TableCell>
-            <TableCell>{q.timeTaken}</TableCell>
-            <TableCell>{q.date}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-};
-
-interface StudyAnalysisTableProps {
-  studySessions: StudySession[];
-}
-const StudyAnalysisTable: React.FC<StudyAnalysisTableProps> = ({ studySessions }) => {
-  // Group by subject
-  const stats = React.useMemo(() => {
-    const subjectMap: Record<string, { count: number; totalHours: number; totalDuration: number; } > = {};
-    studySessions.forEach(s => {
-      const [startH, startM] = s.startTime.split(":").map(Number);
-      const [endH, endM] = s.endTime.split(":").map(Number);
-      const duration = (endH + endM / 60) - (startH + startM / 60);
-      if (!subjectMap[s.subject]) subjectMap[s.subject] = { count: 0, totalHours: 0, totalDuration: 0 };
-      subjectMap[s.subject].count += 1;
-      subjectMap[s.subject].totalHours += duration > 0 ? duration : 0;
-      subjectMap[s.subject].totalDuration += duration > 0 ? duration : 0;
-    });
-    return Object.entries(subjectMap).map(([subject, { count, totalHours, totalDuration }]) => ({
-      subject,
-      count,
-      totalHours,
-      avgDuration: count > 0 ? totalDuration / count : 0
-    }));
-  }, [studySessions]);
-
-  if (stats.length === 0) return <div className="text-muted-foreground">No study data yet.</div>;
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Subject</TableHead>
-          <TableHead>Sessions</TableHead>
-          <TableHead>Total Hours</TableHead>
-          <TableHead>Avg. Session Duration</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {stats.map(stat => (
-          <TableRow key={stat.subject}>
-            <TableCell>{stat.subject}</TableCell>
-            <TableCell>{stat.count}</TableCell>
-            <TableCell>{stat.totalHours.toFixed(1)}</TableCell>
-            <TableCell>{stat.avgDuration.toFixed(2)} hrs</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-};
+// (Removed duplicate/incorrect rendering block at the bottom of the file)
 
 export default Planner;
