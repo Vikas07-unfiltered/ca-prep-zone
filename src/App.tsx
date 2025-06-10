@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,12 +23,13 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import HelpCenter from "./pages/HelpCenter";
 import ContactUs from "./pages/ContactUs";
-import StudyAnalysisPage from "./pages/StudyAnalysis"; // Added import for StudyAnalysisPage
-import { PomodoroPage } from "./pages/PomodoroPage.tsx"; // Added import for PomodoroPage
-import AchievementsLeaderboard from "./pages/AchievementsLeaderboard"; // Added import for AchievementsLeaderboard
+import StudyAnalysisPage from "./pages/StudyAnalysis";
+import { PomodoroPage } from "./pages/PomodoroPage.tsx";
+import AchievementsLeaderboard from "./pages/AchievementsLeaderboard";
+import Payment from "./pages/Payment"; // Added import for Payment page
 import { StrictMode } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
-import ScrollToTop from "./components/ScrollToTop"; // Added import for ScrollToTop
+import ScrollToTop from "./components/ScrollToTop";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -58,9 +60,10 @@ const App = () => (
                 <Route path="/contact-us" element={<MainLayout><ContactUs /></MainLayout>} />
                 <Route path="/privacy-policy" element={<MainLayout><PrivacyPolicy /></MainLayout>} />
                 <Route path="/terms-of-service" element={<MainLayout><TermsOfService /></MainLayout>} />
-                <Route path="/study-analysis" element={<MainLayout><ProtectedRoute><StudyAnalysisPage /></ProtectedRoute></MainLayout>} /> {/* Added route for Study Analysis */}
-                <Route path="/pomodoro" element={<MainLayout><ProtectedRoute><PomodoroPage /></ProtectedRoute></MainLayout>} /> {/* Added route for Pomodoro Page */}
-                <Route path="/achievements" element={<MainLayout><ProtectedRoute><AchievementsLeaderboard /></ProtectedRoute></MainLayout>} /> {/* Added route for Achievements & Leaderboard */}
+                <Route path="/study-analysis" element={<MainLayout><ProtectedRoute><StudyAnalysisPage /></ProtectedRoute></MainLayout>} />
+                <Route path="/pomodoro" element={<MainLayout><ProtectedRoute><PomodoroPage /></ProtectedRoute></MainLayout>} />
+                <Route path="/achievements" element={<MainLayout><ProtectedRoute><AchievementsLeaderboard /></ProtectedRoute></MainLayout>} />
+                <Route path="/payment" element={<MainLayout><ProtectedRoute><Payment /></ProtectedRoute></MainLayout>} /> {/* Added route for Payment */}
                 <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
               </Routes>
             </AuthProvider>
