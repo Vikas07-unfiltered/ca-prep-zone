@@ -16,7 +16,9 @@ export const MobileOptimizedButton: React.FC<MobileOptimizedButtonProps> = ({
     <Button
       className={cn(
         "min-h-[48px] px-6 text-base font-medium touch-manipulation",
-        "active:scale-95 transition-transform duration-150",
+        "active:scale-95 transition-all duration-150 ease-in-out",
+        "focus-visible:ring-2 focus-visible:ring-offset-2",
+        "disabled:opacity-50 disabled:pointer-events-none",
         className
       )}
       {...props}
