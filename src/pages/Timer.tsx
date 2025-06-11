@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnimatedButton } from "@/components/ui/animated-button";
@@ -13,7 +12,7 @@ import { ScrollReveal } from "@/components/ScrollReveal";
 import { useAuth } from "@/contexts/AuthContext";
 import { logPomodoroSession } from "@/services/PomodoroSessionService";
 import { StudyRoomService } from "@/services/StudyRoomService";
-import { CA_LEVELS } from "@/data/caLevels";
+import { ALL_SUBJECTS } from "@/data/caLevels";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
@@ -31,7 +30,6 @@ const Timer: React.FC<TimerProps> = ({ onPomodoroComplete }) => {
   const [shortBreakDuration, setShortBreakDuration] = useState(5);
   const [longBreakDuration, setLongBreakDuration] = useState(15);
   const [subject, setSubject] = useState("");
-  const [selectedLevel, setSelectedLevel] = useState("Foundation");
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
@@ -41,9 +39,6 @@ const Timer: React.FC<TimerProps> = ({ onPomodoroComplete }) => {
   const [editMinutes, setEditMinutes] = useState("");
   const [editSeconds, setEditSeconds] = useState("");
   const interval = useRef(null);
-
-  // Get subjects for selected level
-  const subjectsForSelectedLevel = CA_LEVELS.find(l => l.level === selectedLevel)?.subjects || [];
 
   // Load available study rooms
   useEffect(() => {
@@ -324,7 +319,7 @@ const Timer: React.FC<TimerProps> = ({ onPomodoroComplete }) => {
                               <div key={room.id} className="flex items-center justify-between p-3 border rounded">
                                 <div>
                                   <h4 className="font-medium">{room.name}</h4>
-                                  <p className="text-sm text-muted-foreground">{room.ca_level}</p>
+                                  <p className="text-sm text-muted-foreground">{room.description || 'Study room'}</p>
                                 </div>
                                 <Button 
                                   size="sm" 
@@ -345,22 +340,6 @@ const Timer: React.FC<TimerProps> = ({ onPomodoroComplete }) => {
                   </div>
                 </div>
 
-                <div className="flex gap-4 items-center">
-                  <label className="font-medium">CA Level:</label>
-                  <Select value={selectedLevel} onValueChange={setSelectedLevel}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Select CA Level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CA_LEVELS.map((level) => (
-                        <SelectItem key={level.level} value={level.level}>
-                          {level.level}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 <Tabs defaultValue="focus" onValueChange={handleModeChange} className="w-full">
                   <TabsList className="grid grid-cols-3">
                     <TabsTrigger value="focus">Focus</TabsTrigger>
@@ -376,7 +355,7 @@ const Timer: React.FC<TimerProps> = ({ onPomodoroComplete }) => {
                           <SelectValue placeholder="Select a subject" />
                         </SelectTrigger>
                         <SelectContent>
-                          {subjectsForSelectedLevel.map((subj) => (
+                          {ALL_SUBJECTS.map((subj) => (
                             <SelectItem key={subj} value={subj}>
                               {subj}
                             </SelectItem>

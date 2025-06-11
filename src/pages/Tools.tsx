@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Routes, Route, Link, useLocation } from "react-router-dom";
 import { Clock, Calendar, Users, BookOpen } from 'lucide-react';
@@ -5,14 +6,10 @@ import Timer from "./Timer";
 import Planner from "./Planner";
 import StudyRooms from "./StudyRooms";
 import { ScrollReveal } from "@/components/ScrollReveal";
-import { useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Tools = () => {
   const location = useLocation();
   const isToolsHome = location.pathname === "/tools";
-
-  const [selectedLevel, setSelectedLevel] = useState("All");
 
   const tools = [
     {
@@ -39,10 +36,7 @@ const Tools = () => {
       color: "bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700",
       iconColor: "text-purple-500"
     },
-
   ];
-
-  const filteredTools = tools;
 
   if (!isToolsHome) {
     return (
@@ -60,25 +54,10 @@ const Tools = () => {
         <ScrollReveal>
           <h1 className="text-3xl font-bold mb-8">Tools</h1>
         </ScrollReveal>
-        <p className="text-muted-foreground mb-8">All the tools you need for effective CA exam preparation</p>
-        
-        <div className="mb-4 flex gap-4 items-center">
-          <label className="font-medium">CA Level:</label>
-          <Select value={selectedLevel} onValueChange={setSelectedLevel}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Select CA Level" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All</SelectItem>
-              <SelectItem value="Foundation">Foundation</SelectItem>
-              <SelectItem value="Inter">Inter</SelectItem>
-              <SelectItem value="Final">Final</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <p className="text-muted-foreground mb-8">All the tools you need for effective exam preparation</p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {filteredTools.map((tool, i) => (
+          {tools.map((tool, i) => (
             <ScrollReveal key={tool.path} delay={0.1 + i * 0.05}>
               <Link to={tool.path} className="no-underline group">
                 <Card className="h-full border border-border/40 transition-all duration-200 hover:border-border hover:shadow-md">

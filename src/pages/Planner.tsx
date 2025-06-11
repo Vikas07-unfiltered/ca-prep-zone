@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { Chat } from "@/components/Chat";
 import { getTotalTimePerSubject, formatMinutes, getStudyAnalytics } from '@/services/StudyAnalysisService';
+import { ALL_SUBJECTS } from "@/data/caLevels";
 
 // Utility to format hours
 function formatHours(hours: number) {
@@ -193,7 +194,7 @@ const Planner = () => {
     }
     return {
       id: Date.now(),
-      subject: (CA_LEVELS.find(l => l.level === CA_LEVELS[0].level)?.subjects[0] || ""),
+      subject: ALL_SUBJECTS[0] || "",
       date: new Date(),
       startTime: "09:00",
       endTime: "10:00",
@@ -240,7 +241,7 @@ const Planner = () => {
     setIsAddingSession(false);
     setNewSession({
       id: crypto.randomUUID(),
-      subject: (CA_LEVELS.find(l => l.level === CA_LEVELS[0].level)?.subjects[0] || ""),
+      subject: ALL_SUBJECTS[0] || "",
       date: new Date(),
       startTime: "09:00",
       endTime: "10:00",
@@ -380,29 +381,6 @@ const Planner = () => {
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
                           <div className="grid gap-2">
-                            <Label htmlFor="level">CA Level</Label>
-                            <Select
-                              value={selectedLevel}
-                              onValueChange={(level) => {
-                                setSelectedLevel(level);
-                                // Set subject to first subject of new level, or empty
-                                const firstSubject = CA_LEVELS.find(l => l.level === level)?.subjects[0] || "";
-                                setNewSession((prev) => ({ ...prev, subject: firstSubject }));
-                              }}
-                            >
-                              <SelectTrigger id="level">
-                                <SelectValue placeholder="Select CA Level" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {CA_LEVELS.map((level) => (
-                                  <SelectItem key={level.level} value={level.level}>
-                                    {level.level}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="grid gap-2">
                             <Label htmlFor="subject">Subject</Label>
                             <Select
                               value={newSession.subject}
@@ -412,7 +390,7 @@ const Planner = () => {
                                 <SelectValue placeholder="Select subject" />
                               </SelectTrigger>
                               <SelectContent>
-                                {subjectsForSelectedLevel.map((subject) => (
+                                {ALL_SUBJECTS.map((subject) => (
                                   <SelectItem key={subject} value={subject}>
                                     {subject}
                                   </SelectItem>
