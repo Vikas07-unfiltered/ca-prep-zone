@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnimatedButton } from "@/components/ui/animated-button";
@@ -6,9 +7,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, Check, X } from "lucide-react";
+import { Pencil, Check, X, Users } from "lucide-react";
 import { Doodle } from "@/components/ui/Doodle";
 import { ScrollReveal } from "@/components/ScrollReveal";
+import { useAuth } from "@/contexts/AuthContext";
+import { logPomodoroSession } from "@/services/PomodoroSessionService";
+import { StudyRoomService } from "@/services/StudyRoomService";
+import { CA_LEVELS } from "@/data/caLevels";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface TimerProps {
   onPomodoroComplete?: () => void;
@@ -16,20 +23,40 @@ interface TimerProps {
 
 const Timer: React.FC<TimerProps> = ({ onPomodoroComplete }) => {
   const { toast } = useToast();
-  const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
+  const { user } = useAuth();
+  const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
   const [currentMode, setCurrentMode] = useState("focus");
   const [focusDuration, setFocusDuration] = useState(25);
   const [shortBreakDuration, setShortBreakDuration] = useState(5);
   const [longBreakDuration, setLongBreakDuration] = useState(15);
   const [subject, setSubject] = useState("");
-  const [sessions, setSessions] = useState([]);
+  const [selectedLevel, setSelectedLevel] = useState("Foundation");
+  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
+  const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
+  const [availableRooms, setAvailableRooms] = useState<any[]>([]);
+  const [showRoomDialog, setShowRoomDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editHours, setEditHours] = useState("0");
   const [editMinutes, setEditMinutes] = useState("");
   const [editSeconds, setEditSeconds] = useState("");
   const interval = useRef(null);
-  const [selectedLevel, setSelectedLevel] = useState("All");
+
+  // Get subjects for selected level
+  const subjectsForSelectedLevel = CA_LEVELS.find(l => l.level === selectedLevel)?.subjects || [];
+
+  // Load available study rooms
+  useEffect(() => {
+    const loadRooms = async () => {
+      try {
+        const rooms = await StudyRoomService.getAll();
+        setAvailableRooms(rooms);
+      } catch (error) {
+        console.error('Error loading rooms:', error);
+      }
+    };
+    loadRooms();
+  }, []);
 
   useEffect(() => {
     if (isActive) {
@@ -38,14 +65,7 @@ const Timer: React.FC<TimerProps> = ({ onPomodoroComplete }) => {
           if (prevTime <= 1) {
             clearInterval(interval.current);
             setIsActive(false);
-            toast({
-              title: "Timer Completed",
-              description: `Your ${currentMode} session is complete!`,
-            });
-            // Call onPomodoroComplete if focus session completed
-            if (currentMode === "focus" && typeof onPomodoroComplete === "function") {
-              onPomodoroComplete();
-            }
+            handleSessionComplete();
             return 0;
           }
           return prevTime - 1;
@@ -57,6 +77,44 @@ const Timer: React.FC<TimerProps> = ({ onPomodoroComplete }) => {
 
     return () => clearInterval(interval.current);
   }, [isActive, currentMode, toast]);
+
+  const handleSessionComplete = async () => {
+    toast({
+      title: "Timer Completed",
+      description: `Your ${currentMode} session is complete!`,
+    });
+
+    // Log completed Pomodoro session
+    if (currentMode === "focus" && sessionStartTime && user && subject) {
+      try {
+        await logPomodoroSession({
+          user_id: user.id,
+          subject: subject,
+          start_time: sessionStartTime.toISOString(),
+          end_time: new Date().toISOString(),
+          room_id: currentRoomId
+        });
+        
+        toast({
+          title: "Session Logged",
+          description: `Your ${subject} study session has been recorded!`,
+        });
+      } catch (error) {
+        console.error('Error logging session:', error);
+        toast({
+          title: "Logging Error",
+          description: "Failed to save your session data.",
+          variant: "destructive"
+        });
+      }
+    }
+
+    if (currentMode === "focus" && typeof onPomodoroComplete === "function") {
+      onPomodoroComplete();
+    }
+
+    setSessionStartTime(null);
+  };
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -88,7 +146,6 @@ const Timer: React.FC<TimerProps> = ({ onPomodoroComplete }) => {
 
   const handleToggleTimer = () => {
     if (!isActive && timeLeft === 0) {
-      // If timer completed, reset it based on current mode
       let duration;
       switch (currentMode) {
         case "focus":
@@ -106,16 +163,26 @@ const Timer: React.FC<TimerProps> = ({ onPomodoroComplete }) => {
       setTimeLeft(duration * 60);
     }
     
-    setIsActive(!isActive);
-    
-    if (!isActive && currentMode === "focus") {
-      // Log session start
-      console.log(`Started focus session on: ${subject || "Unnamed subject"}`);
+    if (!isActive) {
+      // Starting timer
+      if (currentMode === "focus" && !subject) {
+        toast({
+          title: "Subject Required",
+          description: "Please select a subject before starting your focus session.",
+          variant: "destructive"
+        });
+        return;
+      }
+      setSessionStartTime(new Date());
+      console.log(`Started ${currentMode} session on: ${subject || "Break"}`);
     }
+    
+    setIsActive(!isActive);
   };
 
   const handleResetTimer = () => {
     setIsActive(false);
+    setSessionStartTime(null);
     let duration;
     
     switch (currentMode) {
@@ -168,9 +235,54 @@ const Timer: React.FC<TimerProps> = ({ onPomodoroComplete }) => {
     setIsEditing(false);
   };
 
-  const filteredSessions = sessions.filter(session =>
-    selectedLevel === "All" || session.ca_level === selectedLevel
-  );
+  const joinStudyRoom = async (roomCode: number) => {
+    if (!user) return;
+    
+    try {
+      await StudyRoomService.joinRoom(roomCode, user.id);
+      const room = await StudyRoomService.getRoomByCode(roomCode);
+      if (room) {
+        setCurrentRoomId(room.id);
+        toast({
+          title: "Joined Study Room",
+          description: `You're now in ${room.name}`,
+        });
+      }
+      setShowRoomDialog(false);
+    } catch (error) {
+      console.error('Error joining room:', error);
+      toast({
+        title: "Error",
+        description: "Failed to join study room",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const leaveStudyRoom = async () => {
+    if (!user || !currentRoomId) return;
+    
+    try {
+      const room = availableRooms.find(r => r.id === currentRoomId);
+      if (room) {
+        await StudyRoomService.leaveRoom(room.room_code, user.id);
+        setCurrentRoomId(null);
+        toast({
+          title: "Left Study Room",
+          description: "You've left the study room",
+        });
+      }
+    } catch (error) {
+      console.error('Error leaving room:', error);
+      toast({
+        title: "Error",
+        description: "Failed to leave study room",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const currentRoom = availableRooms.find(r => r.id === currentRoomId);
 
   return (
     <div className="relative">
@@ -189,20 +301,66 @@ const Timer: React.FC<TimerProps> = ({ onPomodoroComplete }) => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="mb-4 flex gap-4 items-center">
+                {/* Study Room Integration */}
+                <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    <span className="text-sm">
+                      {currentRoom ? `In: ${currentRoom.name}` : "Not in any room"}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    {!currentRoom ? (
+                      <Dialog open={showRoomDialog} onOpenChange={setShowRoomDialog}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm">Join Room</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Join Study Room</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            {availableRooms.map((room) => (
+                              <div key={room.id} className="flex items-center justify-between p-3 border rounded">
+                                <div>
+                                  <h4 className="font-medium">{room.name}</h4>
+                                  <p className="text-sm text-muted-foreground">{room.ca_level}</p>
+                                </div>
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => joinStudyRoom(room.room_code)}
+                                >
+                                  Join
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={leaveStudyRoom}>
+                        Leave Room
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex gap-4 items-center">
                   <label className="font-medium">CA Level:</label>
                   <Select value={selectedLevel} onValueChange={setSelectedLevel}>
                     <SelectTrigger className="w-40">
                       <SelectValue placeholder="Select CA Level" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="All">All</SelectItem>
-                      <SelectItem value="Foundation">Foundation</SelectItem>
-                      <SelectItem value="Inter">Inter</SelectItem>
-                      <SelectItem value="Final">Final</SelectItem>
+                      {CA_LEVELS.map((level) => (
+                        <SelectItem key={level.level} value={level.level}>
+                          {level.level}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
+
                 <Tabs defaultValue="focus" onValueChange={handleModeChange} className="w-full">
                   <TabsList className="grid grid-cols-3">
                     <TabsTrigger value="focus">Focus</TabsTrigger>
@@ -213,12 +371,18 @@ const Timer: React.FC<TimerProps> = ({ onPomodoroComplete }) => {
                   <TabsContent value="focus" className="space-y-4 mt-4">
                     <div className="space-y-2">
                       <Label htmlFor="subject">Study Subject</Label>
-                      <Input
-                        id="subject"
-                        placeholder="What are you studying?"
-                        value={subject}
-                        onChange={(e) => setSubject(e.target.value)}
-                      />
+                      <Select value={subject} onValueChange={setSubject}>
+                        <SelectTrigger id="subject">
+                          <SelectValue placeholder="Select a subject" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {subjectsForSelectedLevel.map((subj) => (
+                            <SelectItem key={subj} value={subj}>
+                              {subj}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -272,6 +436,17 @@ const Timer: React.FC<TimerProps> = ({ onPomodoroComplete }) => {
                       </div>
                     )}
                   </div>
+                  
+                  {isActive && sessionStartTime && currentMode === "focus" && (
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">
+                        Studying: <span className="font-medium">{subject}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Started: {sessionStartTime.toLocaleTimeString()}
+                      </p>
+                    </div>
+                  )}
                   
                   <div className="flex justify-center gap-4 mt-2">
                     {isEditing ? (

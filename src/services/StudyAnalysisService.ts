@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/types/supabase';
 
@@ -48,6 +49,51 @@ export async function getTotalTimePerSubject(user_id: string, startDate?: Date, 
 export function formatMinutes(minutes: number) {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h} hr${h !== 1 ? 's' : ''}`;
   return `${h} hr${h !== 1 ? 's' : ''} ${m} min`;
 }
 
+// Get comprehensive study analytics including both manual sessions and pomodoro sessions
+export async function getStudyAnalytics(user_id: string, startDate?: Date, endDate?: Date) {
+  // Get total time per subject
+  const subjectTotals = await getTotalTimePerSubject(user_id, startDate, endDate);
+  
+  // Get session counts
+  let studySessionsQuery = supabase
+    .from('study_sessions')
+    .select('subject, date')
+    .eq('user_id', user_id);
+  let pomodoroSessionsQuery = supabase
+    .from('pomodoro_sessions')
+    .select('subject, start_time')
+    .eq('user_id', user_id);
+
+  if (startDate && endDate) {
+    studySessionsQuery = studySessionsQuery.gte('date', startDate.toISOString()).lte('date', endDate.toISOString());
+    pomodoroSessionsQuery = pomodoroSessionsQuery.gte('start_time', startDate.toISOString()).lte('start_time', endDate.toISOString());
+  }
+
+  const { data: studySessions } = await studySessionsQuery;
+  const { data: pomodoroSessions } = await pomodoroSessionsQuery;
+
+  // Count sessions per subject
+  const sessionCounts: Record<string, number> = {};
+  (studySessions || []).forEach(session => {
+    if (session.subject) {
+      sessionCounts[session.subject] = (sessionCounts[session.subject] || 0) + 1;
+    }
+  });
+  (pomodoroSessions || []).forEach(session => {
+    if (session.subject) {
+      sessionCounts[session.subject] = (sessionCounts[session.subject] || 0) + 1;
+    }
+  });
+
+  return {
+    subjectTotals,
+    sessionCounts,
+    totalMinutes: Object.values(subjectTotals).reduce((sum, minutes) => sum + minutes, 0),
+    totalSessions: Object.values(sessionCounts).reduce((sum, count) => sum + count, 0)
+  };
+}

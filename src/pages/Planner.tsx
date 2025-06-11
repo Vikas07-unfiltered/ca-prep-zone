@@ -1,4 +1,3 @@
-
 import { Doodle } from "@/components/ui/Doodle";
 import * as React from "react";
 import { useState, useEffect } from "react";
@@ -14,7 +13,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { Chat } from "@/components/Chat";
-import { getTotalTimePerSubject, formatMinutes } from '@/services/StudyAnalysisService';
+import { getTotalTimePerSubject, formatMinutes, getStudyAnalytics } from '@/services/StudyAnalysisService';
 
 // Utility to format hours
 function formatHours(hours: number) {
@@ -53,8 +52,18 @@ function getRandomQuote() {
 const Planner = () => {
   // --- Aggregated subject totals from both study_sessions & pomodoro_sessions ---
   const { user } = useAuth();
-  const [subjectTotals, setSubjectTotals] = useState<Record<string, number>>({});
-  const [totalsLoading, setTotalsLoading] = useState(false);
+  const [analytics, setAnalytics] = useState<{
+    subjectTotals: Record<string, number>;
+    sessionCounts: Record<string, number>;
+    totalMinutes: number;
+    totalSessions: number;
+  }>({
+    subjectTotals: {},
+    sessionCounts: {},
+    totalMinutes: 0,
+    totalSessions: 0
+  });
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   // Date filter state
   const [filterPreset, setFilterPreset] = useState<'all'|'week'|'month'|'custom'>('all');
@@ -85,10 +94,10 @@ const Planner = () => {
 
   useEffect(() => {
     if (!user) return;
-    setTotalsLoading(true);
-    getTotalTimePerSubject(user.id, dateRange.start ?? undefined, dateRange.end ?? undefined)
-      .then(setSubjectTotals)
-      .finally(() => setTotalsLoading(false));
+    setAnalyticsLoading(true);
+    getStudyAnalytics(user.id, dateRange.start ?? undefined, dateRange.end ?? undefined)
+      .then(setAnalytics)
+      .finally(() => setAnalyticsLoading(false));
   }, [user, dateRange]);
   
   // Always scroll to top when Planner mounts
@@ -246,7 +255,7 @@ const Planner = () => {
     setStudySessions(sessions => sessions.filter(session => session.id !== id));
   };
 
-  // Calculate total study hours
+  // Calculate total study hours from manual sessions
   function getTotalStudyHours() {
     let total = 0;
     for (const session of studySessions) {
@@ -259,8 +268,13 @@ const Planner = () => {
   }
   const totalStudyHours = getTotalStudyHours();
 
-  // Calculate weekly study hours
+  // Calculate weekly study hours from analytics
   function getCurrentWeekStudyHours() {
+    if (filterPreset === 'week') {
+      return analytics.totalMinutes / 60;
+    }
+    
+    // If not filtered by week, calculate manually for this week
     const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
@@ -277,26 +291,21 @@ const Planner = () => {
   }
   const weeklyHours = getCurrentWeekStudyHours();
 
-  // Calculate most studied subject
+  // Calculate most studied subject from analytics
   function getMostStudiedSubject() {
-    const subjectTotals: Record<string, number> = {};
-    for (const session of studySessions) {
-      const [startH, startM] = session.startTime.split(":").map(Number);
-      const [endH, endM] = session.endTime.split(":").map(Number);
-      let diff = (endH + endM / 60) - (startH + startM / 60);
-      if (diff > 0) {
-        subjectTotals[session.subject] = (subjectTotals[session.subject] || 0) + diff;
-      }
+    if (Object.keys(analytics.subjectTotals).length === 0) {
+      return { subject: "-", hours: 0 };
     }
+    
     let maxSubject = "-";
-    let maxHours = 0;
-    for (const subject of Object.keys(subjectTotals)) {
-      if (subjectTotals[subject] > maxHours) {
+    let maxMinutes = 0;
+    for (const [subject, minutes] of Object.entries(analytics.subjectTotals)) {
+      if (minutes > maxMinutes) {
         maxSubject = subject;
-        maxHours = subjectTotals[subject];
+        maxMinutes = minutes;
       }
     }
-    return { subject: maxSubject, hours: maxHours };
+    return { subject: maxSubject, hours: maxMinutes / 60 };
   }
   const mostStudied = getMostStudiedSubject();
 
@@ -310,16 +319,18 @@ const Planner = () => {
         </div>
         
         <div className="space-y-6">
-          {/* Study Analysis Section */}
+          {/* Study Analysis Section - Now shows combined data from manual sessions + Pomodoro */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Study Time</CardTitle>
-                <CardDescription className="text-2xl font-bold">{formatHours(totalStudyHours)}</CardDescription>
+                <CardDescription className="text-2xl font-bold">
+                  {analyticsLoading ? "Loading..." : formatMinutes(analytics.totalMinutes)}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-xs text-muted-foreground">
-                  Across {studySessions.length} sessions
+                  Across {analytics.totalSessions} sessions (manual + Pomodoro)
                 </div>
               </CardContent>
             </Card>
