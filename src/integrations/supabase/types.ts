@@ -159,6 +159,44 @@ export type Database = {
           },
         ]
       }
+      pomodoro_sessions: {
+        Row: {
+          created_at: string | null
+          end_time: string
+          id: string
+          room_id: string | null
+          start_time: string
+          subject: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          end_time: string
+          id?: string
+          room_id?: string | null
+          start_time: string
+          subject: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          end_time?: string
+          id?: string
+          room_id?: string | null
+          start_time?: string
+          subject?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pomodoro_sessions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "study_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -346,6 +384,7 @@ export type Database = {
           description: string | null
           duration: number
           id: string
+          room_id: string | null
           subject: string
           title: string
           updated_at: string
@@ -357,6 +396,7 @@ export type Database = {
           description?: string | null
           duration: number
           id?: string
+          room_id?: string | null
           subject: string
           title: string
           updated_at?: string
@@ -368,12 +408,21 @@ export type Database = {
           description?: string | null
           duration?: number
           id?: string
+          room_id?: string | null
           subject?: string
           title?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "study_sessions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "study_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       videos: {
         Row: {

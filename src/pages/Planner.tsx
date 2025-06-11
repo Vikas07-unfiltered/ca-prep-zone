@@ -1,13 +1,6 @@
-// ... (previous imports remain the same)
 
 import { Doodle } from "@/components/ui/Doodle";
-
 import * as React from "react";
-
-// Import charts and table from StudyAnalysis
-import StudyBarChart from "./StudyAnalysis";
-import StudyPieChart from "./StudyAnalysis";
-import StudyAnalysisTable from "./StudyAnalysis";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,11 +24,7 @@ function formatHours(hours: number) {
 // CA Levels and Subjects (centralized)
 import { CA_LEVELS } from "@/data/caLevels";
 
-// --- CA Level/Subject state for session form ---
-// (Moved into Planner component below)
-
 // Types for study sessions
-// Updated to use string UUID for id
 type StudySession = {
   id: string; // uuid
   subject: string;
@@ -101,13 +90,11 @@ const Planner = () => {
       .then(setSubjectTotals)
       .finally(() => setTotalsLoading(false));
   }, [user, dateRange]);
+  
   // Always scroll to top when Planner mounts
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-
-  // --- Dashboard Summary ---
-  // (already in state/effects above)
 
   // --- CA Level/Subject state for session form ---
   const [selectedLevel, setSelectedLevel] = useState(CA_LEVELS[0].level);
@@ -313,65 +300,8 @@ const Planner = () => {
   }
   const mostStudied = getMostStudiedSubject();
 
-  // Calculate hours per subject
-  function getHoursPerSubject() {
-    const subjectTotals: Record<string, number> = {};
-    for (const session of studySessions) {
-      const [startH, startM] = session.startTime.split(":").map(Number);
-      const [endH, endM] = session.endTime.split(":").map(Number);
-      let diff = (endH + endM / 60) - (startH + startM / 60);
-      if (diff > 0) {
-        subjectTotals[session.subject] = (subjectTotals[session.subject] || 0) + diff;
-      }
-    }
-    return subjectTotals;
-  }
-  const subjectHours = getHoursPerSubject();
-
   return (
     <div className="space-y-8">
-      {/* Date Filter Controls */}
-      <div className="mb-4 flex items-center gap-4 flex-wrap">
-        <label>Date Range:</label>
-        <Select value={filterPreset} onValueChange={v => setFilterPreset(v as any)}>
-          <SelectTrigger className="w-32">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Time</SelectItem>
-            <SelectItem value="week">This Week</SelectItem>
-            <SelectItem value="month">This Month</SelectItem>
-            <SelectItem value="custom">Custom</SelectItem>
-          </SelectContent>
-        </Select>
-        {filterPreset === 'custom' && (
-          <>
-            <Label>From:</Label>
-            <Input type="date" value={customRange.start ? customRange.start.toISOString().slice(0,10) : ''} onChange={e => setCustomRange({ ...customRange, start: e.target.value ? new Date(e.target.value) : null })} />
-            <Label>To:</Label>
-            <Input type="date" value={customRange.end ? customRange.end.toISOString().slice(0,10) : ''} onChange={e => setCustomRange({ ...customRange, end: e.target.value ? new Date(e.target.value) : null })} />
-          </>
-        )}
-      </div>
-
-      {/* Study Bar Chart */}
-      <div>
-        <h3 className="font-semibold mb-2">Study Time by Subject</h3>
-        <StudyBarChart studySessions={studySessions} />
-      </div>
-
-      {/* Study Pie Chart */}
-      <div>
-        <h3 className="font-semibold mb-2">Study Time Distribution</h3>
-        <StudyPieChart studySessions={studySessions} />
-      </div>
-
-      {/* Study Analysis Table */}
-      <div>
-        <h3 className="font-semibold mb-2">Study Time Table</h3>
-        <StudyAnalysisTable studySessions={studySessions} />
-      </div>
-
       <div className="relative">
         <div className="container py-8 md:py-12">
           <ScrollReveal>
@@ -599,7 +529,5 @@ const Planner = () => {
     </div>
   );
 };
-
-// (Removed duplicate/incorrect rendering block at the bottom of the file)
 
 export default Planner;

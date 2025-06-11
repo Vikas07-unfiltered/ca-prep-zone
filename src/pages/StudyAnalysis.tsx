@@ -1,10 +1,12 @@
+
 import React, { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend, ResponsiveContainer } from "recharts";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { CA_LEVELS } from "@/data/caLevels"; // Assuming this might be needed for context, can be removed if not
+import StudyBarChart from "@/components/charts/StudyBarChart";
+import StudyPieChart from "@/components/charts/StudyPieChart";
+import StudyAnalysisTable from "@/components/charts/StudyAnalysisTable";
 
 // Types from Planner.tsx that might be needed
 type StudySession = {
@@ -31,61 +33,6 @@ interface QuizSession {
   quiz_id?: string;
 }
 
-// --- StudyBarChart ---
-const StudyBarChart: React.FC<{ studySessions: StudySession[] }> = ({ studySessions }) => {
-  const data = React.useMemo(() => {
-    const map: Record<string, number> = {};
-    studySessions.forEach(s => {
-      const [startH, startM] = s.startTime.split(":").map(Number);
-      const [endH, endM] = s.endTime.split(":").map(Number);
-      const duration = (endH + endM / 60) - (startH + startM / 60);
-      map[s.subject] = (map[s.subject] || 0) + (duration > 0 ? duration : 0);
-    });
-    return Object.entries(map).map(([subject, value]) => ({ subject, value }));
-  }, [studySessions]);
-  if (data.length === 0) return <div className="text-muted-foreground">No data for bar chart</div>;
-  return (
-    <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={data}>
-        <XAxis dataKey="subject" />
-        <YAxis />
-        <Tooltip />
-        <Legend />
-        <Bar dataKey="value" fill="#8884d8" />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-};
-
-// --- StudyPieChart ---
-const COLORS = ["#6366f1", "#f59e42", "#10b981", "#ef4444", "#a855f7", "#fbbf24"];
-const StudyPieChart: React.FC<{ studySessions: StudySession[] }> = ({ studySessions }) => {
-  const data = React.useMemo(() => {
-    const map: Record<string, number> = {};
-    studySessions.forEach(s => {
-      const [startH, startM] = s.startTime.split(":").map(Number);
-      const [endH, endM] = s.endTime.split(":").map(Number);
-      const duration = (endH + endM / 60) - (startH + startM / 60);
-      map[s.subject] = (map[s.subject] || 0) + (duration > 0 ? duration : 0);
-    });
-    return Object.entries(map).map(([subject, value]) => ({ subject, value }));
-  }, [studySessions]);
-  if (data.length === 0) return <div className="text-muted-foreground">No data for pie chart</div>;
-  return (
-    <ResponsiveContainer width="100%" height={300}>
-      <PieChart>
-        <Pie data={data} dataKey="value" nameKey="subject" cx="50%" cy="50%" outerRadius={100} label>
-          {data.map((entry, idx) => (
-            <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
-          ))}
-        </Pie>
-        <Tooltip />
-        <Legend />
-      </PieChart>
-    </ResponsiveContainer>
-  );
-};
-
 // --- QuizPerformanceTable ---
 const QuizPerformanceTable: React.FC<{ quizSessions: QuizSession[] }> = ({ quizSessions }) => {
   if (!quizSessions.length) return <div className="text-muted-foreground">No quiz data yet.</div>;
@@ -106,55 +53,6 @@ const QuizPerformanceTable: React.FC<{ quizSessions: QuizSession[] }> = ({ quizS
             <TableCell>{q.score}</TableCell>
             <TableCell>{q.timeTaken}</TableCell>
             <TableCell>{q.date.toLocaleDateString()}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-};
-
-// --- StudyAnalysisTable ---
-interface StudyAnalysisTableProps {
-  studySessions: StudySession[];
-}
-const StudyAnalysisTable: React.FC<StudyAnalysisTableProps> = ({ studySessions }) => {
-  const stats = React.useMemo(() => {
-    const subjectMap: Record<string, { count: number; totalHours: number; totalDuration: number; } > = {};
-    studySessions.forEach(s => {
-      const [startH, startM] = s.startTime.split(":").map(Number);
-      const [endH, endM] = s.endTime.split(":").map(Number);
-      const duration = (endH + endM / 60) - (startH + startM / 60);
-      if (!subjectMap[s.subject]) subjectMap[s.subject] = { count: 0, totalHours: 0, totalDuration: 0 };
-      subjectMap[s.subject].count += 1;
-      subjectMap[s.subject].totalHours += duration > 0 ? duration : 0;
-      subjectMap[s.subject].totalDuration += duration > 0 ? duration : 0;
-    });
-    return Object.entries(subjectMap).map(([subject, { count, totalHours, totalDuration }]) => ({
-      subject,
-      count,
-      totalHours,
-      avgDuration: count > 0 ? totalDuration / count : 0
-    }));
-  }, [studySessions]);
-
-  if (stats.length === 0) return <div className="text-muted-foreground">No study data yet.</div>;
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Subject</TableHead>
-          <TableHead>Sessions</TableHead>
-          <TableHead>Total Hours</TableHead>
-          <TableHead>Avg. Session Duration</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {stats.map(stat => (
-          <TableRow key={stat.subject}>
-            <TableCell>{stat.subject}</TableCell>
-            <TableCell>{stat.count}</TableCell>
-            <TableCell>{stat.totalHours.toFixed(1)}</TableCell>
-            <TableCell>{stat.avgDuration.toFixed(2)} hrs</TableCell>
           </TableRow>
         ))}
       </TableBody>
