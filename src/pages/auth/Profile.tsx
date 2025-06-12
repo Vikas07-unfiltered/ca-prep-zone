@@ -36,7 +36,7 @@ const Profile = () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name')
+          .select('full_name, bio')
           .eq('id', user.id)
           .single();
           
@@ -45,7 +45,7 @@ const Profile = () => {
         setProfile({
           name: data?.full_name || user.user_metadata?.full_name || "",
           email: user.email || "",
-          bio: "CA student preparing for finals"
+          bio: data?.bio || ""
         });
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -67,6 +67,7 @@ const Profile = () => {
         .from('profiles')
         .update({
           full_name: profile.name,
+          bio: profile.bio
         })
         .eq('id', user.id);
         

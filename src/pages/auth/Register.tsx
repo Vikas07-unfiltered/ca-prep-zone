@@ -22,16 +22,20 @@ const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [bio, setBio] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  // Import supabase client
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { supabase } = require("@/integrations/supabase/client");
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !bio) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: "Please fill in all fields, including your bio.",
         variant: "destructive",
       });
       return;
@@ -58,7 +62,8 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      const { error } = await signUp(email, password, name);
+      // Sign up user (creates auth user and basic profile)
+      const { error, data } = await signUp(email, password, name);
       
       if (error) {
         toast({
@@ -67,6 +72,24 @@ const Register = () => {
           variant: "destructive",
         });
       } else {
+        // Try to get the user id from Supabase after registration
+        // The user may need to verify their email before being able to log in, so we need to update the profile row by email
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        const userId = userData?.user?.id;
+        if (userId) {
+          // Update the profile row with the bio
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ bio })
+            .eq('id', userId);
+          if (updateError) {
+            toast({
+              title: "Profile Update Failed",
+              description: updateError.message,
+              variant: "destructive",
+            });
+          }
+        }
         toast({
           title: "Success",
           description: "Account created successfully! Please check your email for verification.",
@@ -128,6 +151,19 @@ const Register = () => {
                 />
                 <p className="text-xs text-muted-foreground">
                   Must be at least 6 characters long
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bio">Bio</Label>
+                <Input
+                  id="bio"
+                  placeholder="Tell us about yourself and your CA journey"
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Example: "CA student passionate about audit and taxation. Preparing for finals!"
                 </p>
               </div>
               <div className="flex items-center space-x-2">
