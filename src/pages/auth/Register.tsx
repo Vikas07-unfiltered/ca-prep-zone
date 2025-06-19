@@ -25,9 +25,23 @@ const Register = () => {
   const [bio, setBio] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string>("");
   // Import supabase client
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { supabase } = require("@/integrations/supabase/client");
+
+  // Handler for avatar file input
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const getDiceBearUrl = (seed: string) =>
+    `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(seed)}`;
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +77,7 @@ const Register = () => {
     
     try {
       // Sign up user (creates auth user and basic profile)
-      const { error, data } = await signUp(email, password, name);
+      const { error } = await signUp(email, password, name);
       
       if (error) {
         toast({
@@ -73,14 +87,37 @@ const Register = () => {
         });
       } else {
         // Try to get the user id from Supabase after registration
-        // The user may need to verify their email before being able to log in, so we need to update the profile row by email
         const { data: userData, error: userError } = await supabase.auth.getUser();
         const userId = userData?.user?.id;
+        let avatarUrl = "";
         if (userId) {
-          // Update the profile row with the bio
+          // Upload avatar if provided
+          if (avatarFile) {
+            const fileExt = avatarFile.name.split('.').pop();
+            const filePath = `avatars/${userId}.${fileExt}`;
+            const { error: uploadError } = await supabase.storage
+              .from('avatars')
+              .upload(filePath, avatarFile, { upsert: true });
+            if (uploadError) {
+              toast({
+                title: "Avatar Upload Failed",
+                description: uploadError.message,
+                variant: "destructive",
+              });
+            } else {
+              const { data: publicUrlData } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+              avatarUrl = publicUrlData?.publicUrl || "";
+            }
+          } else {
+            // Use DiceBear avatar
+            avatarUrl = getDiceBearUrl(name || email);
+          }
+          // Update the profile row with the bio and avatarUrl
           const { error: updateError } = await supabase
             .from('profiles')
-            .update({ bio })
+            .update({ bio, avatar_url: avatarUrl })
             .eq('id', userId);
           if (updateError) {
             toast({
@@ -119,6 +156,22 @@ const Register = () => {
           </CardHeader>
           <form onSubmit={handleRegister}>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="avatar">Profile Picture (optional)</Label>
+                <Input 
+                  id="avatar"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                />
+                {avatarPreview && (
+                  <img 
+                    src={avatarPreview} 
+                    alt="Avatar Preview" 
+                    style={{ width: 80, height: 80, borderRadius: '50%' }} 
+                  />
+                )}
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
                 <Input 
